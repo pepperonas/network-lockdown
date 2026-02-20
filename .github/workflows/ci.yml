@@ -1,0 +1,370 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ────────────────────────────────────────────────────────────
+  # Job 1: Static Analysis
+  # ────────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax check
+        run: |
+          bash -n network-lockdown-linux.sh
+          bash -n network-lockdown-mac.sh
+
+      - name: ShellCheck
+        run: |
+          shellcheck --severity=warning \
+            --exclude=SC2086,SC1091 \
+            network-lockdown-linux.sh \
+            network-lockdown-mac.sh
+
+      - name: PowerShell syntax check
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "$PWD/network-lockdown-windows.ps1",
+            [ref]$null,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.ToString() }
+            exit 1
+          }
+          Write-Host "PowerShell syntax OK"
+
+  # ────────────────────────────────────────────────────────────
+  # Job 2: Linux Integration Tests
+  # ────────────────────────────────────────────────────────────
+  test-linux:
+    name: Test Linux (iptables)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y dnsutils
+
+      - name: Make script executable
+        run: chmod +x network-lockdown-linux.sh
+
+      # ── Functional tests (no root) ──
+
+      - name: "Test: help command"
+        run: |
+          output=$(./network-lockdown-linux.sh help 2>&1)
+          echo "$output"
+          echo "$output" | grep -q "on"
+          echo "$output" | grep -q "off"
+          echo "$output" | grep -q "status"
+          echo "PASS: help output contains expected keywords"
+
+      - name: "Test: resolve_ips function"
+        run: |
+          eval "$(sed -n '/^resolve_ips()/,/^}/p' network-lockdown-linux.sh)"
+          ips=$(resolve_ips)
+          echo "Resolved IPs: $ips"
+          [ -n "$ips" ] || { echo "FAIL: No IPs resolved"; exit 1; }
+          echo "PASS: resolve_ips returned IPs"
+
+      # ── Integration tests (with sudo) ──
+
+      - name: "Integration: activate lockdown"
+        run: sudo ./network-lockdown-linux.sh on
+
+      - name: "Integration: lockfile exists"
+        run: |
+          [ -f /tmp/claude-lockdown.active ] || { echo "FAIL: lockfile missing"; exit 1; }
+          echo "PASS: lockfile exists"
+
+      - name: "Integration: iptables OUTPUT policy is DROP"
+        run: |
+          policy=$(sudo iptables -L OUTPUT -n | head -1)
+          echo "OUTPUT chain: $policy"
+          echo "$policy" | grep -q "DROP" || { echo "FAIL: OUTPUT not DROP"; exit 1; }
+          echo "PASS: OUTPUT policy is DROP"
+
+      - name: "Integration: Anthropic API reachable"
+        run: |
+          http_code=$(curl -sS --connect-timeout 10 -o /dev/null -w "%{http_code}" https://api.anthropic.com 2>/dev/null || true)
+          echo "api.anthropic.com HTTP status: $http_code"
+          [[ "$http_code" =~ ^[2345] ]] || { echo "FAIL: Anthropic API not reachable (HTTP $http_code)"; exit 1; }
+          echo "PASS: Anthropic API reachable"
+
+      - name: "Integration: Google blocked"
+        run: |
+          if curl -sS --connect-timeout 5 -o /dev/null https://www.google.com 2>/dev/null; then
+            echo "FAIL: google.com should be blocked but is reachable"
+            exit 1
+          fi
+          echo "PASS: google.com is blocked"
+
+      - name: "Integration: status command"
+        run: |
+          sudo ./network-lockdown-linux.sh status
+          echo "PASS: status command succeeded"
+
+      - name: "Integration: refresh IPs"
+        run: |
+          sudo ./network-lockdown-linux.sh refresh
+          echo "PASS: refresh succeeded"
+
+      - name: "Integration: deactivate lockdown"
+        run: sudo ./network-lockdown-linux.sh off
+
+      - name: "Integration: lockfile removed"
+        run: |
+          [ ! -f /tmp/claude-lockdown.active ] || { echo "FAIL: lockfile still exists"; exit 1; }
+          echo "PASS: lockfile removed"
+
+      - name: "Integration: iptables OUTPUT policy is ACCEPT"
+        run: |
+          policy=$(sudo iptables -L OUTPUT -n | head -1)
+          echo "OUTPUT chain: $policy"
+          echo "$policy" | grep -q "ACCEPT" || { echo "FAIL: OUTPUT not ACCEPT"; exit 1; }
+          echo "PASS: OUTPUT policy restored to ACCEPT"
+
+      - name: "Integration: Google reachable again"
+        run: |
+          http_code=$(curl -sS --connect-timeout 10 -o /dev/null -w "%{http_code}" https://www.google.com 2>/dev/null || true)
+          echo "google.com HTTP status: $http_code"
+          [[ "$http_code" =~ ^[23] ]] || { echo "FAIL: google.com not reachable after off"; exit 1; }
+          echo "PASS: google.com reachable after deactivation"
+
+      # ── Safety net ──
+
+      - name: "Cleanup: force deactivate"
+        if: always()
+        run: sudo ./network-lockdown-linux.sh off 2>/dev/null || true
+
+  # ────────────────────────────────────────────────────────────
+  # Job 3: macOS Integration Tests
+  # ────────────────────────────────────────────────────────────
+  test-macos:
+    name: Test macOS (pfctl)
+    runs-on: macos-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x network-lockdown-mac.sh
+
+      # ── Functional tests (no root) ──
+
+      - name: "Test: help command"
+        run: |
+          output=$(./network-lockdown-mac.sh help 2>&1)
+          echo "$output"
+          echo "$output" | grep -q "on"
+          echo "$output" | grep -q "off"
+          echo "$output" | grep -q "status"
+          echo "PASS: help output contains expected keywords"
+
+      - name: "Test: resolve_ips function"
+        run: |
+          eval "$(sed -n '/^resolve_ips()/,/^}/p' network-lockdown-mac.sh)"
+          ips=$(resolve_ips)
+          echo "Resolved IPs: $ips"
+          [ -n "$ips" ] || { echo "FAIL: No IPs resolved"; exit 1; }
+          echo "PASS: resolve_ips returned IPs"
+
+      # ── Integration tests (with sudo) ──
+
+      - name: "Integration: activate lockdown"
+        run: sudo ./network-lockdown-mac.sh on
+
+      - name: "Integration: lockfile exists"
+        run: |
+          [ -f /tmp/claude-lockdown.active ] || { echo "FAIL: lockfile missing"; exit 1; }
+          echo "PASS: lockfile exists"
+
+      - name: "Integration: pfctl has block rules"
+        run: |
+          rules=$(sudo pfctl -sr 2>/dev/null)
+          echo "PF rules:"
+          echo "$rules"
+          echo "$rules" | grep -q "block drop" || { echo "FAIL: no block drop rules found"; exit 1; }
+          echo "PASS: pfctl contains block drop rules"
+
+      - name: "Integration: Anthropic API reachable"
+        run: |
+          http_code=$(curl -sS --connect-timeout 10 -o /dev/null -w "%{http_code}" https://api.anthropic.com 2>/dev/null || true)
+          echo "api.anthropic.com HTTP status: $http_code"
+          [[ "$http_code" =~ ^[2345] ]] || { echo "FAIL: Anthropic API not reachable (HTTP $http_code)"; exit 1; }
+          echo "PASS: Anthropic API reachable"
+
+      - name: "Integration: Google blocked"
+        run: |
+          if curl -sS --connect-timeout 5 -o /dev/null https://www.google.com 2>/dev/null; then
+            echo "FAIL: google.com should be blocked but is reachable"
+            exit 1
+          fi
+          echo "PASS: google.com is blocked"
+
+      - name: "Integration: deactivate lockdown"
+        run: sudo ./network-lockdown-mac.sh off
+
+      - name: "Integration: lockfile removed"
+        run: |
+          [ ! -f /tmp/claude-lockdown.active ] || { echo "FAIL: lockfile still exists"; exit 1; }
+          echo "PASS: lockfile removed"
+
+      - name: "Integration: Google reachable again"
+        run: |
+          http_code=$(curl -sS --connect-timeout 10 -o /dev/null -w "%{http_code}" https://www.google.com 2>/dev/null || true)
+          echo "google.com HTTP status: $http_code"
+          [[ "$http_code" =~ ^[23] ]] || { echo "FAIL: google.com not reachable after off"; exit 1; }
+          echo "PASS: google.com reachable after deactivation"
+
+      # ── Safety net ──
+
+      - name: "Cleanup: force deactivate"
+        if: always()
+        run: |
+          sudo pfctl -F all 2>/dev/null || true
+          sudo pfctl -d 2>/dev/null || true
+          sudo ./network-lockdown-mac.sh off 2>/dev/null || true
+
+  # ────────────────────────────────────────────────────────────
+  # Job 4: Windows Integration Tests
+  # ────────────────────────────────────────────────────────────
+  test-windows:
+    name: Test Windows (Firewall)
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Functional tests ──
+
+      - name: "Test: Show-Help function"
+        shell: pwsh
+        run: |
+          $output = & .\network-lockdown-windows.ps1 help 2>&1 | Out-String
+          Write-Host $output
+          if ($output -notmatch "on") { throw "FAIL: help missing 'on'" }
+          if ($output -notmatch "off") { throw "FAIL: help missing 'off'" }
+          if ($output -notmatch "status") { throw "FAIL: help missing 'status'" }
+          Write-Host "PASS: help output contains expected keywords"
+
+      - name: "Test: Resolve-AnthropicIPs"
+        shell: pwsh
+        run: |
+          $ips = Resolve-DnsName -Name "api.anthropic.com" -ErrorAction SilentlyContinue |
+            Where-Object { $_.Type -eq "A" } |
+            Select-Object -ExpandProperty IPAddress
+          Write-Host "Resolved IPs: $($ips -join ', ')"
+          if (-not $ips -or $ips.Count -eq 0) { throw "FAIL: No IPs resolved" }
+          Write-Host "PASS: Anthropic IPs resolved"
+
+      - name: "Test: runner is admin"
+        shell: pwsh
+        run: |
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+          $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          Write-Host "Is Administrator: $isAdmin"
+          if (-not $isAdmin) { throw "FAIL: runner is not admin" }
+          Write-Host "PASS: runner is admin"
+
+      # ── Integration tests ──
+
+      - name: "Integration: activate lockdown"
+        shell: pwsh
+        run: .\network-lockdown-windows.ps1 on
+
+      - name: "Integration: lockfile exists"
+        shell: pwsh
+        run: |
+          $lockfile = "$env:TEMP\claude-lockdown.active"
+          if (-not (Test-Path $lockfile)) { throw "FAIL: lockfile missing at $lockfile" }
+          Write-Host "PASS: lockfile exists"
+
+      - name: "Integration: firewall rules created"
+        shell: pwsh
+        run: |
+          $rules = Get-NetFirewallRule -DisplayName "Claude-Lockdown*" -ErrorAction SilentlyContinue
+          if (-not $rules -or $rules.Count -eq 0) { throw "FAIL: no Claude-Lockdown rules found" }
+          Write-Host "Found $($rules.Count) lockdown rules:"
+          $rules | ForEach-Object { Write-Host "  - $($_.DisplayName)" }
+          Write-Host "PASS: firewall rules exist"
+
+      - name: "Integration: Anthropic API reachable"
+        shell: pwsh
+        run: |
+          try {
+            $response = Invoke-WebRequest -Uri "https://api.anthropic.com" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+            Write-Host "api.anthropic.com: HTTP $($response.StatusCode)"
+          } catch {
+            if ($_.Exception.Response) {
+              Write-Host "api.anthropic.com: reachable (HTTP response received)"
+            } else {
+              throw "FAIL: Anthropic API not reachable: $_"
+            }
+          }
+          Write-Host "PASS: Anthropic API reachable"
+
+      - name: "Integration: Google blocked"
+        shell: pwsh
+        run: |
+          try {
+            Invoke-WebRequest -Uri "https://www.google.com" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop | Out-Null
+            throw "FAIL: google.com should be blocked but is reachable"
+          } catch [System.Net.WebException] {
+            Write-Host "PASS: google.com is blocked"
+          } catch {
+            if ($_.Exception.Message -match "FAIL") { throw $_ }
+            Write-Host "PASS: google.com is blocked ($($_.Exception.GetType().Name))"
+          }
+
+      - name: "Integration: deactivate lockdown"
+        shell: pwsh
+        run: .\network-lockdown-windows.ps1 off
+
+      - name: "Integration: lockfile removed"
+        shell: pwsh
+        run: |
+          $lockfile = "$env:TEMP\claude-lockdown.active"
+          if (Test-Path $lockfile) { throw "FAIL: lockfile still exists" }
+          Write-Host "PASS: lockfile removed"
+
+      - name: "Integration: firewall rules removed"
+        shell: pwsh
+        run: |
+          $rules = Get-NetFirewallRule -DisplayName "Claude-Lockdown*" -ErrorAction SilentlyContinue
+          if ($rules -and $rules.Count -gt 0) { throw "FAIL: lockdown rules still exist" }
+          Write-Host "PASS: firewall rules removed"
+
+      - name: "Integration: Google reachable again"
+        shell: pwsh
+        run: |
+          try {
+            $response = Invoke-WebRequest -Uri "https://www.google.com" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+            Write-Host "google.com: HTTP $($response.StatusCode)"
+          } catch {
+            throw "FAIL: google.com not reachable after off: $_"
+          }
+          Write-Host "PASS: google.com reachable after deactivation"
+
+      # ── Safety net ──
+
+      - name: "Cleanup: remove firewall rules"
+        if: always()
+        shell: pwsh
+        run: |
+          Get-NetFirewallRule -DisplayName "Claude-Lockdown*" -ErrorAction SilentlyContinue |
+            Remove-NetFirewallRule -ErrorAction SilentlyContinue
+          Remove-Item -Path "$env:TEMP\claude-lockdown.active" -Force -ErrorAction SilentlyContinue
+          Write-Host "Cleanup done"
