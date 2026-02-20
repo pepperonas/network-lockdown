@@ -144,20 +144,17 @@ function Enable-Lockdown {
     Write-Log "Erstelle Firewall-Regeln..." "Cyan"
 
     # ──────────────────────────────────────────────
-    # Schritt 1: Alles blockieren (niedrige Prioritaet)
+    # Schritt 1: Blockiere alles via Profil-Standardaktion
+    # (Explizite Block-Regeln wuerden Allow-Regeln uebersteuern!)
     # ──────────────────────────────────────────────
 
-    New-NetFirewallRule `
-        -DisplayName "$RULE_PREFIX - Block All Outbound" `
-        -Direction Outbound -Action Block `
-        -Protocol Any -Enabled True `
-        -Description "Blockiert gesamten ausgehenden Verkehr" | Out-Null
+    # Alle bestehenden ausgehenden Allow-Regeln deaktivieren
+    Get-NetFirewallRule -Direction Outbound -Action Allow -Enabled True -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -notlike "$RULE_PREFIX*" } |
+        Disable-NetFirewallRule -ErrorAction SilentlyContinue
 
-    New-NetFirewallRule `
-        -DisplayName "$RULE_PREFIX - Block All Inbound" `
-        -Direction Inbound -Action Block `
-        -Protocol Any -Enabled True `
-        -Description "Blockiert gesamten eingehenden Verkehr" | Out-Null
+    # Profil-Standardaktionen auf Block setzen
+    Set-NetFirewallProfile -All -DefaultOutboundAction Block -DefaultInboundAction Block
 
     # ──────────────────────────────────────────────
     # Schritt 2: Loopback erlauben
@@ -314,7 +311,11 @@ function Disable-Lockdown {
     Remove-LockdownRules
     Write-Log "Lockdown-Regeln entfernt" "Cyan"
 
-    # Backup wiederherstellen
+    # Profil-Standardaktionen wiederherstellen (Allow ist der Windows-Standard)
+    Set-NetFirewallProfile -All -DefaultOutboundAction Allow -DefaultInboundAction Block
+    Write-Log "Profil-Standardaktionen wiederhergestellt" "Cyan"
+
+    # Backup wiederherstellen (stellt auch deaktivierte Regeln wieder her)
     $backupPath = $null
     if (Test-Path $LOCKFILE) {
         $lines = Get-Content $LOCKFILE
@@ -333,7 +334,10 @@ function Disable-Lockdown {
         }
     }
     else {
-        Write-Log "Kein Backup gefunden. Firewall bleibt im aktuellen Zustand (ohne Lockdown-Regeln)." "Yellow"
+        # Alle deaktivierten Regeln wieder aktivieren
+        Get-NetFirewallRule -Enabled False -ErrorAction SilentlyContinue |
+            Enable-NetFirewallRule -ErrorAction SilentlyContinue
+        Write-Log "Kein Backup gefunden. Deaktivierte Regeln wieder aktiviert." "Yellow"
     }
 
     # Aufraeumen

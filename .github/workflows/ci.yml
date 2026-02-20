@@ -360,11 +360,14 @@ jobs:
 
       # ── Safety net ──
 
-      - name: "Cleanup: remove firewall rules"
+      - name: "Cleanup: restore firewall"
         if: always()
         shell: pwsh
         run: |
           Get-NetFirewallRule -DisplayName "Claude-Lockdown*" -ErrorAction SilentlyContinue |
             Remove-NetFirewallRule -ErrorAction SilentlyContinue
+          Set-NetFirewallProfile -All -DefaultOutboundAction Allow -DefaultInboundAction Block -ErrorAction SilentlyContinue
+          Get-NetFirewallRule -Enabled False -ErrorAction SilentlyContinue |
+            Enable-NetFirewallRule -ErrorAction SilentlyContinue
           Remove-Item -Path "$env:TEMP\claude-lockdown.active" -Force -ErrorAction SilentlyContinue
           Write-Host "Cleanup done"
