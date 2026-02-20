@@ -854,7 +854,7 @@ If personal data is affected, there is a reporting obligation under **Art. 33 DS
 | Bund | BfDI | https://www.bfdi.bund.de |
 | Bayern | BayLDA | https://www.lda.bayern.de |
 | NRW | LDI NRW | https://www.ldi.nrw.de |
-| Baden-Wuerttemberg | LfDI BW | https://www.baden-wuerttemberg.datenschutz.de |
+| Baden-Württemberg | LfDI BW | https://www.baden-württemberg.datenschutz.de |
 | Other | | See https://www.datenschutzkonferenz-online.de |
 
 #### Criminal Complaint with Police
@@ -874,7 +874,7 @@ For cybercrime offenses (§§ 202a-d, 303a-b StGB), a **criminal complaint** sho
 
 | Bundesland | Online-Wache |
 |------------|-------------|
-| Baden-Wuerttemberg | https://www.polizei-bw.de/onlinewache |
+| Baden-Württemberg | https://www.polizei-bw.de/onlinewache |
 | Bayern | https://www.polizei.bayern.de/onlinewache |
 | Berlin | https://www.internetwache-polizei-berlin.de |
 | Brandenburg | https://polizei.brandenburg.de/onlineanzeige |
@@ -895,15 +895,76 @@ For cybercrime offenses (§§ 202a-d, 303a-b StGB), a **criminal complaint** sho
 - Secure screenshots of suspicious files, logs, and connections
 - In case of ransomware: **do not pay ransom** without consulting police and BSI
 
-#### Additional Reporting Offices (International)
+#### International Reporting Authorities
 
-| Country/Region | Authority | Website |
-|-------------|----------|----------|
-| Oesterreich | CERT.at | https://www.cert.at |
-| Schweiz | NCSC | https://www.ncsc.admin.ch |
-| EU | ENISA | https://www.enisa.europa.eu |
+Depending on the location of the affected system or organization, different reporting obligations apply. Below are the most important national CERTs and cybersecurity authorities worldwide.
+
+**Europe:**
+
+| Country | Authority | Website |
+|---------|----------|----------|
+| Austria | CERT.at | https://www.cert.at |
+| Switzerland | NCSC (BACS) | https://www.ncsc.admin.ch |
+| France | ANSSI | https://www.ssi.gouv.fr |
+| Netherlands | NCSC-NL | https://www.ncsc.nl |
+| Belgium | CCB / CERT.be | https://www.cert.be |
+| Italy | ACN / CSIRT Italia | https://www.csirt.gov.it |
+| Spain | INCIBE-CERT | https://www.incibe.es |
+| Portugal | CNCS / CERT.PT | https://www.cncs.gov.pt |
+| Poland | CSIRT NASK | https://www.cert.pl |
+| Czech Republic | NUKIB | https://www.nukib.cz |
+| Sweden | CERT-SE | https://www.cert.se |
+| Norway | NCSC-NO | https://www.nsm.no |
+| Denmark | CFCS | https://www.cfcs.dk |
+| Finland | NCSC-FI | https://www.kyberturvallisuuskeskus.fi |
+| Ireland | NCSC-IE | https://www.ncsc.gov.ie |
+| Luxembourg | CIRCL | https://www.circl.lu |
+
+**EU-wide bodies:**
+
+| Organization | Scope | Website |
+|-------------|-------|----------|
+| ENISA | EU Agency for Cybersecurity | https://www.enisa.europa.eu |
+| Europol EC3 | Cybercrime Centre (law enforcement) | https://www.europol.europa.eu/about-europol/european-cybercrime-centre-ec3 |
+| CERT-EU | EU institutions and agencies | https://www.cert.europa.eu |
+
+**North America:**
+
+| Country | Authority | Website |
+|---------|----------|----------|
 | USA | CISA | https://www.cisa.gov/report |
+| USA | FBI IC3 (law enforcement) | https://www.ic3.gov |
+| Canada | CCCS | https://www.cyber.gc.ca |
+
+**Asia-Pacific:**
+
+| Country | Authority | Website |
+|---------|----------|----------|
+| Australia | ASD / ACSC | https://www.cyber.gov.au |
+| New Zealand | CERT NZ | https://www.cert.govt.nz |
+| Japan | JPCERT/CC | https://www.jpcert.or.jp |
+| Singapore | CSA / SingCERT | https://www.csa.gov.sg |
+| South Korea | KrCERT/CC | https://www.krcert.or.kr |
+| India | CERT-In | https://www.cert-in.org.in |
+
+**Other regions:**
+
+| Country | Authority | Website |
+|---------|----------|----------|
 | UK | NCSC UK | https://www.ncsc.gov.uk |
+| Israel | INCD | https://www.gov.il/en/departments/israel_national_cyber_directorate |
+| Brazil | CERT.br | https://www.cert.br |
+| United Arab Emirates | aeCERT | https://www.tra.gov.ae |
+
+**International coordination:**
+
+| Organization | Scope | Website |
+|-------------|-------|----------|
+| FIRST | Global forum of incident response teams | https://www.first.org |
+| Interpol Cyber | International law enforcement | https://www.interpol.int/Crimes/Cybercrime |
+
+**NIS2 Directive (EU):**
+Since 2024, the NIS2 Directive applies across the entire EU. Affected organizations must report security incidents within **24 hours** (early warning) and **72 hours** (full notification) to the responsible national CSIRT. This covers significantly more sectors and organizations than the previous NIS Directive.
 
 ### Lessons Learned & Training
 

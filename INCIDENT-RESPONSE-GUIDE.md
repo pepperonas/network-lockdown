@@ -895,15 +895,76 @@ Bei Cybercrime-Delikten (§§ 202a-d, 303a-b StGB) sollte eine **Strafanzeige** 
 - Screenshots von verdächtigen Dateien, Logs und Verbindungen sichern
 - Bei Ransomware: **kein Lösegeld zahlen** ohne Rücksprache mit Polizei und BSI
 
-#### Weitere Meldestellen (international)
+#### Internationale Meldestellen
 
-| Land/Region | Behörde | Webseite |
-|-------------|----------|----------|
+Je nach Standort des betroffenen Systems oder der Organisation gelten unterschiedliche Meldepflichten. Nachfolgend die wichtigsten nationalen CERTs und Cybersecurity-Behörden weltweit.
+
+**Europa:**
+
+| Land | Behörde | Webseite |
+|------|----------|----------|
 | Österreich | CERT.at | https://www.cert.at |
-| Schweiz | NCSC | https://www.ncsc.admin.ch |
-| EU | ENISA | https://www.enisa.europa.eu |
+| Schweiz | NCSC (BACS) | https://www.ncsc.admin.ch |
+| Frankreich | ANSSI | https://www.ssi.gouv.fr |
+| Niederlande | NCSC-NL | https://www.ncsc.nl |
+| Belgien | CCB / CERT.be | https://www.cert.be |
+| Italien | ACN / CSIRT Italia | https://www.csirt.gov.it |
+| Spanien | INCIBE-CERT | https://www.incibe.es |
+| Portugal | CNCS / CERT.PT | https://www.cncs.gov.pt |
+| Polen | CSIRT NASK | https://www.cert.pl |
+| Tschechien | NUKIB | https://www.nukib.cz |
+| Schweden | CERT-SE | https://www.cert.se |
+| Norwegen | NCSC-NO | https://www.nsm.no |
+| Dänemark | CFCS | https://www.cfcs.dk |
+| Finnland | NCSC-FI | https://www.kyberturvallisuuskeskus.fi |
+| Irland | NCSC-IE | https://www.ncsc.gov.ie |
+| Luxemburg | CIRCL | https://www.circl.lu |
+
+**EU-weite Stellen:**
+
+| Organisation | Zuständigkeit | Webseite |
+|-------------|---------------|----------|
+| ENISA | EU-Agentur für Cybersicherheit | https://www.enisa.europa.eu |
+| Europol EC3 | Cybercrime-Zentrum (Strafverfolgung) | https://www.europol.europa.eu/about-europol/european-cybercrime-centre-ec3 |
+| CERT-EU | EU-Institutionen und -Agenturen | https://www.cert.europa.eu |
+
+**Nordamerika:**
+
+| Land | Behörde | Webseite |
+|------|----------|----------|
 | USA | CISA | https://www.cisa.gov/report |
+| USA | FBI IC3 (Strafverfolgung) | https://www.ic3.gov |
+| Kanada | CCCS | https://www.cyber.gc.ca |
+
+**Asien-Pazifik:**
+
+| Land | Behörde | Webseite |
+|------|----------|----------|
+| Australien | ASD / ACSC | https://www.cyber.gov.au |
+| Neuseeland | CERT NZ | https://www.cert.govt.nz |
+| Japan | JPCERT/CC | https://www.jpcert.or.jp |
+| Singapur | CSA / SingCERT | https://www.csa.gov.sg |
+| Südkorea | KrCERT/CC | https://www.krcert.or.kr |
+| Indien | CERT-In | https://www.cert-in.org.in |
+
+**Weitere Regionen:**
+
+| Land | Behörde | Webseite |
+|------|----------|----------|
 | UK | NCSC UK | https://www.ncsc.gov.uk |
+| Israel | INCD | https://www.gov.il/en/departments/israel_national_cyber_directorate |
+| Brasilien | CERT.br | https://www.cert.br |
+| Vereinigte Arabische Emirate | aeCERT | https://www.tra.gov.ae |
+
+**Internationale Koordination:**
+
+| Organisation | Zuständigkeit | Webseite |
+|-------------|---------------|----------|
+| FIRST | Globales Forum der Incident-Response-Teams | https://www.first.org |
+| Interpol Cyber | Internationale Strafverfolgung | https://www.interpol.int/Crimes/Cybercrime |
+
+**NIS2-Richtlinie (EU):**
+Seit 2024 gilt die NIS2-Richtlinie in der gesamten EU. Betroffene Unternehmen müssen Sicherheitsvorfälle innerhalb von **24 Stunden** (Frühwarnung) und **72 Stunden** (vollständige Meldung) an das zuständige nationale CSIRT melden. Dies betrifft wesentlich mehr Sektoren und Unternehmen als die vorherige NIS-Richtlinie.
 
 ### Lessons Learned & Schulungen
 

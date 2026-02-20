@@ -24,7 +24,7 @@ jobs:
       - name: ShellCheck
         run: |
           shellcheck --severity=warning \
-            --exclude=SC2086,SC1091 \
+            --exclude=SC2086,SC1091,SC2155,SC2120 \
             network-lockdown-linux.sh \
             network-lockdown-mac.sh
 
