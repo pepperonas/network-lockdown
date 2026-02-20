@@ -1,4 +1,23 @@
-# Network Lockdown Scripts für Claude Code CLI
+<p align="center">
+  <img src="banner.png" alt="Network Lockdown — AI-assisted Incident Response" width="100%">
+</p>
+
+<h1 align="center">Network Lockdown</h1>
+
+<p align="center">
+  <strong>Kernel-level emergency network isolation with AI-assisted incident response</strong>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/pepperonas/network-lockdown?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/firewall-kernel--level-critical?style=flat-square&color=red" alt="Kernel-Level">
+  <img src="https://img.shields.io/badge/AI-Claude%20Opus%204.6-blueviolet?style=flat-square" alt="Claude Opus 4.6">
+  <img src="https://img.shields.io/badge/use%20case-incident%20response-orange?style=flat-square" alt="Incident Response">
+  <a href="https://github.com/pepperonas/network-lockdown/stargazers"><img src="https://img.shields.io/github/stars/pepperonas/network-lockdown?style=flat-square" alt="Stars"></a>
+</p>
+
+---
 
 ## Übersicht
 
