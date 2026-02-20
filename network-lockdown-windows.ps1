@@ -67,8 +67,8 @@ function Resolve-AnthropicIPs {
 
     # Append CIDR suffix so WFP treats every entry as a host address
     # (e.g. 34.128.128.0 without /32 is rejected as "network address")
-    $ipv4 = $ipv4 | ForEach-Object { if ($_ -notmatch "/") { "$_/32" } else { $_ } }
-    $ipv6 = $ipv6 | ForEach-Object { if ($_ -notmatch "/") { "$_/128" } else { $_ } }
+    $ipv4 = @($ipv4 | ForEach-Object { if ($_ -notmatch "/") { "$_/32" } else { $_ } })
+    $ipv6 = @($ipv6 | ForEach-Object { if ($_ -notmatch "/") { "$_/128" } else { $_ } })
 
     return @{ IPv4 = $ipv4; IPv6 = $ipv6 }
 }
@@ -179,25 +179,25 @@ function Enable-Lockdown {
     # Schritt 3: DNS erlauben
     # ──────────────────────────────────────────────
 
-    $dnsIPv4 = $dnsServers | Where-Object { $_ -notmatch ":" } |
-        ForEach-Object { if ($_ -notmatch "/") { "$_/32" } else { $_ } }
+    $dnsIPv4 = @($dnsServers | Where-Object { $_ -notmatch ":" } |
+        ForEach-Object { if ($_ -notmatch "/") { "$_/32" } else { $_ } })
     # Filter out loopback (::1), site-local (fec0::), and link-local (fe80::) — WFP rejects these
-    $dnsIPv6 = $dnsServers | Where-Object { $_ -match ":" -and $_ -notmatch "^(::1|fec0:|fe80:)" } |
-        ForEach-Object { if ($_ -notmatch "/") { "$_/128" } else { $_ } }
+    $dnsIPv6 = @($dnsServers | Where-Object { $_ -match ":" -and $_ -notmatch "^(::1|fec0:|fe80:)" } |
+        ForEach-Object { if ($_ -notmatch "/") { "$_/128" } else { $_ } })
 
     if ($dnsIPv4.Count -gt 0) {
         New-NetFirewallRule `
             -DisplayName "$RULE_PREFIX - Allow DNS UDP v4" `
             -Direction Outbound -Action Allow `
             -Protocol UDP -RemotePort 53 `
-            -RemoteAddress ($dnsIPv4 -join ",") `
+            -RemoteAddress $dnsIPv4 `
             -Enabled True | Out-Null
 
         New-NetFirewallRule `
             -DisplayName "$RULE_PREFIX - Allow DNS TCP v4" `
             -Direction Outbound -Action Allow `
             -Protocol TCP -RemotePort 53 `
-            -RemoteAddress ($dnsIPv4 -join ",") `
+            -RemoteAddress $dnsIPv4 `
             -Enabled True | Out-Null
     }
 
@@ -206,14 +206,14 @@ function Enable-Lockdown {
             -DisplayName "$RULE_PREFIX - Allow DNS UDP v6" `
             -Direction Outbound -Action Allow `
             -Protocol UDP -RemotePort 53 `
-            -RemoteAddress ($dnsIPv6 -join ",") `
+            -RemoteAddress $dnsIPv6 `
             -Enabled True | Out-Null
 
         New-NetFirewallRule `
             -DisplayName "$RULE_PREFIX - Allow DNS TCP v6" `
             -Direction Outbound -Action Allow `
             -Protocol TCP -RemotePort 53 `
-            -RemoteAddress ($dnsIPv6 -join ",") `
+            -RemoteAddress $dnsIPv6 `
             -Enabled True | Out-Null
     }
 
@@ -226,7 +226,7 @@ function Enable-Lockdown {
             -DisplayName "$RULE_PREFIX - Allow Anthropic HTTPS v4" `
             -Direction Outbound -Action Allow `
             -Protocol TCP -RemotePort 443 `
-            -RemoteAddress ($ips.IPv4 -join ",") `
+            -RemoteAddress $ips.IPv4 `
             -Enabled True | Out-Null
 
         # Eingehende Antworten fuer etablierte Verbindungen
@@ -234,7 +234,7 @@ function Enable-Lockdown {
             -DisplayName "$RULE_PREFIX - Allow Anthropic Response v4" `
             -Direction Inbound -Action Allow `
             -Protocol TCP -LocalPort 1024-65535 `
-            -RemoteAddress ($ips.IPv4 -join ",") `
+            -RemoteAddress $ips.IPv4 `
             -Enabled True | Out-Null
     }
 
@@ -243,14 +243,14 @@ function Enable-Lockdown {
             -DisplayName "$RULE_PREFIX - Allow Anthropic HTTPS v6" `
             -Direction Outbound -Action Allow `
             -Protocol TCP -RemotePort 443 `
-            -RemoteAddress ($ips.IPv6 -join ",") `
+            -RemoteAddress $ips.IPv6 `
             -Enabled True | Out-Null
 
         New-NetFirewallRule `
             -DisplayName "$RULE_PREFIX - Allow Anthropic Response v6" `
             -Direction Inbound -Action Allow `
             -Protocol TCP -LocalPort 1024-65535 `
-            -RemoteAddress ($ips.IPv6 -join ",") `
+            -RemoteAddress $ips.IPv6 `
             -Enabled True | Out-Null
     }
 
@@ -263,7 +263,7 @@ function Enable-Lockdown {
             -DisplayName "$RULE_PREFIX - Allow DNS Response v4" `
             -Direction Inbound -Action Allow `
             -Protocol UDP -LocalPort 1024-65535 `
-            -RemoteAddress ($dnsIPv4 -join ",") `
+            -RemoteAddress $dnsIPv4 `
             -Enabled True | Out-Null
     }
 
@@ -272,7 +272,7 @@ function Enable-Lockdown {
             -DisplayName "$RULE_PREFIX - Allow DNS Response v6" `
             -Direction Inbound -Action Allow `
             -Protocol UDP -LocalPort 1024-65535 `
-            -RemoteAddress ($dnsIPv6 -join ",") `
+            -RemoteAddress $dnsIPv6 `
             -Enabled True | Out-Null
     }
 
