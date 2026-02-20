@@ -161,13 +161,13 @@ function Enable-Lockdown {
     New-NetFirewallRule `
         -DisplayName "$RULE_PREFIX - Allow Loopback Out" `
         -Direction Outbound -Action Allow `
-        -RemoteAddress 127.0.0.0/8,::1 `
+        -RemoteAddress 127.0.0.0/8 `
         -Enabled True | Out-Null
 
     New-NetFirewallRule `
         -DisplayName "$RULE_PREFIX - Allow Loopback In" `
         -Direction Inbound -Action Allow `
-        -RemoteAddress 127.0.0.0/8,::1 `
+        -RemoteAddress 127.0.0.0/8 `
         -Enabled True | Out-Null
 
     # ──────────────────────────────────────────────
@@ -175,7 +175,8 @@ function Enable-Lockdown {
     # ──────────────────────────────────────────────
 
     $dnsIPv4 = $dnsServers | Where-Object { $_ -notmatch ":" }
-    $dnsIPv6 = $dnsServers | Where-Object { $_ -match ":" }
+    # Filter out loopback (::1), site-local (fec0::), and link-local (fe80::) — WFP rejects these
+    $dnsIPv6 = $dnsServers | Where-Object { $_ -match ":" -and $_ -notmatch "^(::1|fec0:|fe80:)" }
 
     if ($dnsIPv4.Count -gt 0) {
         New-NetFirewallRule `
