@@ -7,7 +7,7 @@
 
 set -eo pipefail 2>/dev/null || set -e
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 PF_CONF="/etc/pf.anchors/claude-lockdown"
 PF_ANCHOR_NAME="claude-lockdown"

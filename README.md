@@ -9,7 +9,16 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/%F0%9F%87%A9%F0%9F%87%AA-Deutsch-black?style=for-the-badge" alt="Deutsch">
+  &nbsp;
+  <a href="README.en.md">
+    <img src="https://img.shields.io/badge/%F0%9F%87%AC%F0%9F%87%A7-English-grey?style=for-the-badge" alt="English">
+  </a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pepperonas/network-lockdown?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/version-1.1.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/firewall-kernel--level-critical?style=flat-square&color=red" alt="Kernel-Level">
   <img src="https://img.shields.io/badge/AI-Claude%20Opus%204.6-blueviolet?style=flat-square" alt="Claude Opus 4.6">

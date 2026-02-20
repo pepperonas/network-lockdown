@@ -1,3 +1,11 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/%F0%9F%87%A9%F0%9F%87%AA-Deutsch-black?style=for-the-badge" alt="Deutsch">
+  &nbsp;
+  <a href="INCIDENT-RESPONSE-GUIDE.en.md">
+    <img src="https://img.shields.io/badge/%F0%9F%87%AC%F0%9F%87%A7-English-grey?style=for-the-badge" alt="English">
+  </a>
+</p>
+
 # Forensische Incident-Response-Guideline
 
 **Strukturierte Anleitung fuer die forensische Analyse mit Claude Code CLI nach Network Lockdown**

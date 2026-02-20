@@ -13,7 +13,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$VERSION = "1.0.0"
+$VERSION = "1.1.0"
 
 $LOCKFILE = "$env:TEMP\claude-lockdown.active"
 $LOG_FILE = "$env:TEMP\claude-lockdown.log"

@@ -7,7 +7,7 @@
 
 set -eo pipefail 2>/dev/null || set -e
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 BACKUP_V4="/tmp/iptables-backup-$(date +%s).rules"
 BACKUP_V6="/tmp/ip6tables-backup-$(date +%s).rules"
