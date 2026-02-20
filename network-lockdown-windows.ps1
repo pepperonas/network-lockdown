@@ -65,6 +65,11 @@ function Resolve-AnthropicIPs {
     $ipv4 = $ipv4 | Sort-Object -Unique
     $ipv6 = $ipv6 | Sort-Object -Unique
 
+    # Append CIDR suffix so WFP treats every entry as a host address
+    # (e.g. 34.128.128.0 without /32 is rejected as "network address")
+    $ipv4 = $ipv4 | ForEach-Object { if ($_ -notmatch "/") { "$_/32" } else { $_ } }
+    $ipv6 = $ipv6 | ForEach-Object { if ($_ -notmatch "/") { "$_/128" } else { $_ } }
+
     return @{ IPv4 = $ipv4; IPv6 = $ipv6 }
 }
 
@@ -174,9 +179,11 @@ function Enable-Lockdown {
     # Schritt 3: DNS erlauben
     # ──────────────────────────────────────────────
 
-    $dnsIPv4 = $dnsServers | Where-Object { $_ -notmatch ":" }
+    $dnsIPv4 = $dnsServers | Where-Object { $_ -notmatch ":" } |
+        ForEach-Object { if ($_ -notmatch "/") { "$_/32" } else { $_ } }
     # Filter out loopback (::1), site-local (fec0::), and link-local (fe80::) — WFP rejects these
-    $dnsIPv6 = $dnsServers | Where-Object { $_ -match ":" -and $_ -notmatch "^(::1|fec0:|fe80:)" }
+    $dnsIPv6 = $dnsServers | Where-Object { $_ -match ":" -and $_ -notmatch "^(::1|fec0:|fe80:)" } |
+        ForEach-Object { if ($_ -notmatch "/") { "$_/128" } else { $_ } }
 
     if ($dnsIPv4.Count -gt 0) {
         New-NetFirewallRule `
