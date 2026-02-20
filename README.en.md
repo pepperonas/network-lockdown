@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/pepperonas/network-lockdown/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pepperonas/network-lockdown/ci.yml?style=flat-square&label=tests" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pepperonas/network-lockdown?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/version-1.1.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square" alt="Platform">
