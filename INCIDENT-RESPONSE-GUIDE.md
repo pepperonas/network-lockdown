@@ -20,6 +20,8 @@
 - [Phase 9 — Bereinigung & Remediation](#phase-9--bereinigung--remediation)
 - [Phase 10 — Haertung](#phase-10--haertung)
 - [Phase 11 — Dokumentation & Reporting](#phase-11--dokumentation--reporting)
+  - [Meldepflichten & Strafanzeige](#meldepflichten--strafanzeige) — BSI, DSGVO, Polizei, Online-Wache
+  - [Lessons Learned & Schulungen](#lessons-learned--schulungen) — Nachbereitung, Mitarbeiterschulungen
 
 ---
 
@@ -789,6 +791,162 @@ Ein Incident ohne Dokumentation ist ein verlorener Incident. Wir erstellen eine 
 >
 > Speichere in /tmp/incident/report/incident-report.md
 
+### Meldepflichten & Strafanzeige
+
+Je nach Art und Schwere des Vorfalls bestehen **gesetzliche Meldepflichten**. Diese sollten parallel zur technischen Analyse geprueft und eingehalten werden.
+
+#### BSI-Meldung (Deutschland)
+
+Betreiber kritischer Infrastrukturen (KRITIS) sind nach **§ 8b BSI-Gesetz** verpflichtet, erhebliche IT-Sicherheitsvorfaelle an das BSI zu melden.
+
+> Erstelle eine BSI-Meldung basierend auf dem Incident-Report. Die Meldung soll enthalten:
+> 1. Betroffene kritische Dienstleistung
+> 2. Art der Stoerung / des Angriffs
+> 3. Vermuteter Angriffsvektor
+> 4. Betroffene IT-Systeme und Auswirkungen
+> 5. Bereits ergriffene Massnahmen
+> 6. Kontaktdaten des Meldenden
+> Speichere in /tmp/incident/report/bsi-meldung.txt
+
+**Meldewege:**
+- **BSI-Meldeportal:** https://www.bsi.bund.de/DE/IT-Sicherheitsvorfall/it-sicherheitsvorfall_node.html
+- **24/7-Hotline:** +49 228 99 9582-6727
+- **E-Mail:** meldestelle@bsi.bund.de
+
+**Wer muss melden?**
+- KRITIS-Betreiber (Energie, Wasser, Gesundheit, IT/TK, Finanzen, Transport, Ernaehrung)
+- Unternehmen im Anwendungsbereich der **NIS2-Richtlinie** (ab 2024/2025)
+- Betreiber digitaler Dienste (Online-Marktplaetze, Suchmaschinen, Cloud-Dienste)
+
+**Fristen:**
+- Erstmeldung: **unverzueglich**, spaetestens 24 Stunden nach Kenntnisnahme
+- Folgemeldung mit Details: innerhalb von 72 Stunden
+- Abschlussbericht: innerhalb eines Monats
+
+#### DSGVO-Meldung (Datenschutzvorfall)
+
+Wenn personenbezogene Daten betroffen sind, besteht nach **Art. 33 DSGVO** eine Meldepflicht an die zustaendige Datenschutzaufsichtsbehoerde.
+
+> Pruefe ob personenbezogene Daten von der Kompromittierung betroffen sind:
+> 1. Wurden Datenbanken mit Kundendaten, Mitarbeiterdaten oder Nutzerdaten kompromittiert?
+> 2. Gab es Zugriff auf E-Mail-Postfaecher?
+> 3. Wurden Dateien mit personenbezogenen Daten exfiltriert?
+> 4. Waren Zugangsdaten (Passwoerter, Tokens) betroffen?
+> Falls ja: Dokumentiere Art und Umfang der betroffenen Daten fuer die DSGVO-Meldung.
+
+**Pflichten:**
+- **Meldung an Aufsichtsbehoerde:** innerhalb von **72 Stunden** nach Kenntnisnahme (Art. 33 DSGVO)
+- **Benachrichtigung Betroffener:** wenn hohes Risiko fuer deren Rechte besteht (Art. 34 DSGVO)
+- **Dokumentation:** Jeder Vorfall muss intern dokumentiert werden — auch wenn keine Meldepflicht besteht
+
+**Zustaendige Aufsichtsbehoerden (Auswahl):**
+
+| Bundesland | Behoerde | Meldeportal |
+|------------|----------|-------------|
+| Bund | BfDI | https://www.bfdi.bund.de |
+| Bayern | BayLDA | https://www.lda.bayern.de |
+| NRW | LDI NRW | https://www.ldi.nrw.de |
+| Baden-Wuerttemberg | LfDI BW | https://www.baden-wuerttemberg.datenschutz.de |
+| Andere | | Siehe https://www.datenschutzkonferenz-online.de |
+
+#### Strafanzeige bei der Polizei
+
+Bei Cybercrime-Delikten (§§ 202a-d, 303a-b StGB) sollte eine **Strafanzeige** erstattet werden. Viele Bundeslaender bieten dafuer eine **Online-Wache** an.
+
+> Erstelle eine Zusammenfassung des Vorfalls fuer die Strafanzeige. Die Zusammenfassung soll enthalten:
+> 1. Beschreibung des Vorfalls in nicht-technischer Sprache
+> 2. Vermuteter Tatzeitraum
+> 3. Art des Angriffs (unbefugter Zugriff, Datendiebstahl, Sabotage, Erpressung)
+> 4. Bekannter Schaden (finanziell, Datenverlust, Betriebsunterbrechung)
+> 5. Technische Beweise (IOC-Liste als Anlage)
+> 6. Betroffene Systeme und Daten
+> Speichere in /tmp/incident/report/strafanzeige-zusammenfassung.txt
+
+**Online-Wachen der Bundeslaender:**
+
+| Bundesland | Online-Wache |
+|------------|-------------|
+| Baden-Wuerttemberg | https://www.polizei-bw.de/onlinewache |
+| Bayern | https://www.polizei.bayern.de/onlinewache |
+| Berlin | https://www.internetwache-polizei-berlin.de |
+| Brandenburg | https://polizei.brandenburg.de/onlineanzeige |
+| Hamburg | https://www.polizei.hamburg/onlinewache |
+| Hessen | https://onlinewache.polizei.hessen.de |
+| Niedersachsen | https://www.onlinewache.polizei.niedersachsen.de |
+| NRW | https://polizei.nrw/internetwache |
+| Sachsen | https://www.polizei.sachsen.de/onlinewache |
+| Schleswig-Holstein | https://www.schleswig-holstein.de/onlinewache |
+
+**Spezialisierte Anlaufstellen:**
+- **ZAC (Zentrale Ansprechstellen Cybercrime):** Jedes Landeskriminalamt hat eine ZAC-Stelle fuer Unternehmen — erreichbar ueber die jeweilige LKA-Webseite
+- **BKA:** Bei schwerwiegenden oder grenzueberschreitenden Faellen direkt an das Bundeskriminalamt
+
+**Wichtig fuer die Anzeige:**
+- Beweise **nicht veraendern** bevor die Anzeige erstattet ist (unsere Analyse ist nicht-destruktiv)
+- IOC-Liste, Timeline und Incident-Report als Anlagen beifuegen
+- Screenshots von verdaechtigen Dateien, Logs und Verbindungen sichern
+- Bei Ransomware: **kein Loesegeld zahlen** ohne Ruecksprache mit Polizei und BSI
+
+#### Weitere Meldestellen (international)
+
+| Land/Region | Behoerde | Webseite |
+|-------------|----------|----------|
+| Oesterreich | CERT.at | https://www.cert.at |
+| Schweiz | NCSC | https://www.ncsc.admin.ch |
+| EU | ENISA | https://www.enisa.europa.eu |
+| USA | CISA | https://www.cisa.gov/report |
+| UK | NCSC UK | https://www.ncsc.gov.uk |
+
+### Lessons Learned & Schulungen
+
+Nach Abschluss des Incidents sollte ein strukturiertes **Lessons-Learned-Meeting** stattfinden und konkrete Verbesserungsmassnahmen abgeleitet werden.
+
+> Erstelle ein Lessons-Learned-Dokument mit folgender Struktur:
+>
+> **1. Incident-Zusammenfassung**
+> - Was ist passiert? (kurz)
+> - Wie wurde der Vorfall entdeckt?
+> - Wie lange dauerte es von Kompromittierung bis Entdeckung (Dwell Time)?
+>
+> **2. Was hat gut funktioniert?**
+> - Schnelle Isolation durch Network Lockdown?
+> - Effektive Analyse mit Claude Code CLI?
+> - Vorhandene Logs ausreichend?
+>
+> **3. Was muss verbessert werden?**
+> - Fehlende Monitoring-Tools?
+> - Unzureichende Log-Aufbewahrung?
+> - Fehlende Incident-Response-Plaene?
+> - Mangelnde Segmentierung?
+>
+> **4. Konkrete Massnahmen**
+> - Technisch (Tools, Konfigurationen, Monitoring)
+> - Organisatorisch (Prozesse, Verantwortlichkeiten)
+> - Personell (Schulungen, Awareness)
+>
+> **5. Schulungsplan**
+> - Welche Mitarbeiter muessen geschult werden?
+> - Welche Themen sind prioritaer?
+>
+> Speichere in /tmp/incident/report/lessons-learned.md
+
+**Schulungs-Empfehlungen nach einem Incident:**
+
+| Zielgruppe | Themen | Prioritaet |
+|------------|--------|------------|
+| Alle Mitarbeiter | Phishing-Erkennung, Social Engineering, Passwort-Hygiene, Meldewege | Hoch |
+| IT-Team | Incident-Response-Prozesse, Log-Analyse, Forensik-Grundlagen | Hoch |
+| Administratoren | Systemhaertung, Patch-Management, Monitoring, Backup-Verifikation | Hoch |
+| Entwickler | Secure Coding, Dependency-Management, Secret-Management | Mittel |
+| Management | Risikobewertung, Meldepflichten, Budget fuer Security-Massnahmen | Mittel |
+
+**Empfohlener Zeitplan:**
+- **Woche 1-2:** Lessons-Learned-Meeting mit allen Beteiligten
+- **Monat 1:** Security-Awareness-Schulung fuer alle Mitarbeiter
+- **Monat 1-2:** Technische Schulungen fuer IT-Team
+- **Quartal 2:** Incident-Response-Uebung (Tabletop Exercise)
+- **Laufend:** Regelmaessige Phishing-Simulationen und Awareness-Refresher
+
 ### Lockdown deaktivieren
 
 Erst wenn alle Phasen abgeschlossen sind und das System gehaertet wurde:
@@ -885,4 +1043,10 @@ Nutze diese Checkliste um sicherzustellen, dass keine Phase uebersprungen wird:
 - [ ] **System gehaertet** — Updates, SSH, Firewall, Services
 - [ ] **Logging aktiviert** — auditd, File-Integrity-Monitoring
 - [ ] **Incident-Report erstellt** — Vollstaendig, mit Timeline und IOCs
+- [ ] **BSI-Meldung geprueft/erstattet** — KRITIS, NIS2, digitale Dienste
+- [ ] **DSGVO-Meldung geprueft/erstattet** — Aufsichtsbehoerde innerhalb 72h
+- [ ] **Betroffene benachrichtigt** — Falls hohes Risiko (Art. 34 DSGVO)
+- [ ] **Strafanzeige erstattet** — Online-Wache oder ZAC/LKA
+- [ ] **Lessons-Learned-Meeting durchgefuehrt** — Mit allen Beteiligten
+- [ ] **Schulungsplan erstellt** — Awareness, Technik, Prozesse
 - [ ] **Lockdown deaktiviert** — Erst nach vollstaendiger Haertung
