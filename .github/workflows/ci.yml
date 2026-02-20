@@ -252,7 +252,7 @@ jobs:
       - name: "Test: Show-Help function"
         shell: pwsh
         run: |
-          $output = & .\network-lockdown-windows.ps1 help 2>&1 | Out-String
+          $output = & .\network-lockdown-windows.ps1 help *>&1 | Out-String
           Write-Host $output
           if ($output -notmatch "on") { throw "FAIL: help missing 'on'" }
           if ($output -notmatch "off") { throw "FAIL: help missing 'off'" }
