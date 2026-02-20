@@ -100,24 +100,31 @@ Die Paketfilterung erfolgt nicht im Userspace, sondern direkt im Betriebssystem-
 
 ```mermaid
 graph TD
-    A[Anwendung sendet Paket] --> B[Userspace/Kernel-Grenze]
-    B --> C[Kernel Network Stack]
-    C --> D{Firewall Filter<br/>Kernel-Level}
-    D -->|Match: Anthropic IPs:443| E[PASS → Network Interface]
-    D -->|Match: DNS:53| E
-    D -->|Match: Loopback| E
-    D -->|Kein Match| F[DROP silently]
-    E --> G[Physisches Netzwerk]
+    subgraph OUT["AUSGEHEND"]
+        A["App sendet Paket"]:::node --> B["Kernel Network Stack"]:::node
+        B --> D{"FIREWALL\nPF / Netfilter / WFP"}:::fw
 
-    H[Eingehende Pakete] --> I[Network Interface]
-    I --> J{Firewall Filter<br/>Kernel-Level}
-    J -->|Established Connection| K[PASS → Anwendung]
-    J -->|Kein Match| L[DROP silently]
+        D -- "Anthropic API :443" --> PASS1["PASS"]:::pass
+        D -- "DNS :53" --> PASS1
+        D -- "Loopback" --> PASS1
+        D -- "Alles andere" --> DROP1["DROP"]:::drop
 
-    style D fill:#f96
-    style J fill:#f96
-    style F fill:#f33
-    style L fill:#f33
+        PASS1 --> NET["Netzwerk"]:::node
+    end
+
+    subgraph IN["EINGEHEND"]
+        NET2["Netzwerk"]:::node --> J{"FIREWALL\nPF / Netfilter / WFP"}:::fw
+
+        J -- "Etablierte Verbindung" --> PASS2["PASS"]:::pass
+        J -- "Alles andere" --> DROP2["DROP"]:::drop
+
+        PASS2 --> APP["Anwendung"]:::node
+    end
+
+    classDef node fill:#1a1a2e,stroke:#555,color:#e0e0e0
+    classDef fw fill:#0d47a1,stroke:#1565c0,color:#ffffff
+    classDef pass fill:#1b5e20,stroke:#2e7d32,color:#ffffff
+    classDef drop fill:#b71c1c,stroke:#c62828,color:#ffffff
 ```
 
 ### Paket-Flow im Detail
