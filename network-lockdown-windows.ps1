@@ -103,7 +103,7 @@ function Enable-Lockdown {
         return
     }
 
-    Write-Log "=== NETWORK LOCKDOWN — AKTIVIERUNG ===" "Yellow"
+    Write-Log "=== NETWORK LOCKDOWN — AKTIVIERUNG ===" "Magenta"
     Write-Log ""
 
     # Aktuelle Firewall-Konfiguration sichern
@@ -289,7 +289,7 @@ function Enable-Lockdown {
     Write-Log "Status pruefen:   .\network-lockdown-windows.ps1 status" "Cyan"
     Write-Log "IPs aktualisieren: .\network-lockdown-windows.ps1 refresh" "Cyan"
     Write-Log "" "White"
-    Write-Log "Forensische Analyse-Guideline:" "Yellow"
+    Write-Log "Forensische Analyse-Guideline:" "Magenta"
     Write-Log "  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md" "Cyan"
 }
 
@@ -299,7 +299,7 @@ function Disable-Lockdown {
         return
     }
 
-    Write-Log "=== NETWORK LOCKDOWN — DEAKTIVIERUNG ===" "Yellow"
+    Write-Log "=== NETWORK LOCKDOWN — DEAKTIVIERUNG ===" "Magenta"
     Write-Log ""
 
     # Lockdown-Regeln entfernen
@@ -455,44 +455,44 @@ function Show-Banner {
     $titlePad = $innerWidth - 3 - $titleText.Length - $ver.Length - 3
 
     Write-Host ""
-    Write-Host ("╔" + ("═" * $innerWidth) + "╗") -ForegroundColor Cyan
-    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Cyan
+    Write-Host ("╔" + ("═" * $innerWidth) + "╗") -ForegroundColor Magenta
+    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Magenta
     # Title
-    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "║" -ForegroundColor Magenta -NoNewline
     Write-Host "   " -NoNewline
     Write-Host $titleText -ForegroundColor White -NoNewline
     Write-Host (" " * $titlePad) -NoNewline
     Write-Host $ver -ForegroundColor DarkGray -NoNewline
     Write-Host "   " -NoNewline
-    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "║" -ForegroundColor Magenta
     # Separator
-    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "║" -ForegroundColor Magenta -NoNewline
     Write-Host ("   " + ("━" * 52) + "   ") -ForegroundColor DarkGray -NoNewline
-    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "║" -ForegroundColor Magenta
     # Description
-    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "║" -ForegroundColor Magenta -NoNewline
     Write-Host ("   Kernel-level emergency network isolation" + (" " * 15)) -NoNewline
-    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "║" -ForegroundColor Magenta
     # Platform
-    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "║" -ForegroundColor Magenta -NoNewline
     Write-Host "   Platform: " -NoNewline
     Write-Host "Windows" -ForegroundColor Green -NoNewline
     Write-Host " " -NoNewline
     Write-Host "(WFP/NetSecurity)" -ForegroundColor DarkGray -NoNewline
     Write-Host (" " * 20) -NoNewline
-    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "║" -ForegroundColor Magenta
     # Empty
-    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Cyan
+    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Magenta
     # Developer
-    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "║" -ForegroundColor Magenta -NoNewline
     Write-Host "   " -NoNewline
     Write-Host "Martin Pfeffer - celox.io" -ForegroundColor DarkGray -NoNewline
     Write-Host (" " * 30) -NoNewline
-    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "║" -ForegroundColor Magenta
     # Empty
-    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Cyan
+    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Magenta
     # Bottom
-    Write-Host ("╚" + ("═" * $innerWidth) + "╝") -ForegroundColor Cyan
+    Write-Host ("╚" + ("═" * $innerWidth) + "╝") -ForegroundColor Magenta
     Write-Host ""
 }
 
@@ -515,7 +515,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "Hinweis: Erfordert Administrator-Rechte (Als Admin ausfuehren)." -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "Forensische Analyse-Guideline:" -ForegroundColor Yellow
+    Write-Host "Forensische Analyse-Guideline:" -ForegroundColor Magenta
     Write-Host "  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md" -ForegroundColor Cyan
     Write-Host ""
 }

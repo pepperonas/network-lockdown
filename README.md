@@ -453,6 +453,25 @@ Get-Service Dnscache | Start-Service
 - **Memory:** Rules belegen ~4-8 KB Kernel-Memory
 - **Skalierung:** Bis zu 50 IP-Adressen problemlos handhabbar
 
+## Farbschema / Color Scheme
+
+Alle Skripte verwenden ein einheitliches Farbschema, optimiert fuer dunkle Terminals:
+
+| Farbe | ANSI Code (Bash) | PowerShell | Verwendung |
+|-------|------------------|------------|------------|
+| **Rot** | `\033[1;31m` | `Red` | Fehler, Blockiert, Kritisch |
+| **Gruen** | `\033[1;32m` | `Green` | Erfolg, Erlaubt, OK |
+| **Gelb** | `\033[1;33m` | `Yellow` | Warnungen, Vorsicht |
+| **Cyan** | `\033[0;96m` | `Cyan` | Info, Fortschritt, Anweisungen |
+| **Magenta** | `\033[0;95m` | `Magenta` | Abschnitts-Header, Banner-Rahmen, Akzente |
+| **Weiss** | `\033[1;37m` | `White` | Titel, primaere Labels |
+| **Grau** | `\033[0;90m` | `DarkGray` | Sekundaer (Version, Attribution, Details) |
+
+**Design-Prinzipien:**
+- Bright-Varianten (`1;3xm` / `0;9xm`) fuer maximale Lesbarkeit auf dunklen Hintergruenden
+- Klare semantische Trennung: Gelb = nur Warnungen, Magenta = nur Struktur/Header
+- Konsistent ueber alle drei Plattformen (macOS, Linux, Windows)
+
 ## Lizenz und Haftung
 
 Diese Skripte werden ohne Gewährleistung bereitgestellt. Testen Sie sie in einer sicheren Umgebung, bevor Sie sie produktiv einsetzen.

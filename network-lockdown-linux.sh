@@ -15,14 +15,14 @@ LOCKFILE="/tmp/claude-lockdown.active"
 LOG_FILE="/tmp/claude-lockdown.log"
 
 # Farben
-RED='\033[0;31m'
-GREEN='\033[0;32m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;96m'
-NC='\033[0m'
-CYAN='\033[0;36m'
+CYAN='\033[0;96m'
+MAGENTA='\033[0;95m'
 WHITE='\033[1;37m'
-DIM='\033[2m'
+DIM='\033[0;90m'
+NC='\033[0m'
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -54,16 +54,16 @@ check_dependencies() {
 
 show_banner() {
     printf '\n'
-    printf '%b\n' "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
-    printf '%b\n' "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}   ${WHITE}NETWORK LOCKDOWN${NC}                              ${DIM}v${VERSION}${NC}   ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}   ${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}   ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}   Kernel-level emergency network isolation               ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}   Platform: ${GREEN}Linux${NC} ${DIM}(iptables/Netfilter)${NC}                   ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}   ${DIM}Martin Pfeffer - celox.io${NC}                              ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
-    printf '%b\n' "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
+    printf '%b\n' "${MAGENTA}╔══════════════════════════════════════════════════════════╗${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}                                                          ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}   ${WHITE}NETWORK LOCKDOWN${NC}                              ${DIM}v${VERSION}${NC}   ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}   ${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}   ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}   Kernel-level emergency network isolation               ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}   Platform: ${GREEN}Linux${NC} ${DIM}(iptables/Netfilter)${NC}                   ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}                                                          ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}   ${DIM}Martin Pfeffer - celox.io${NC}                              ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}║${NC}                                                          ${MAGENTA}║${NC}"
+    printf '%b\n' "${MAGENTA}╚══════════════════════════════════════════════════════════╝${NC}"
     printf '\n'
 }
 
@@ -114,18 +114,18 @@ activate_lockdown() {
         exit 1
     fi
 
-    log "${YELLOW}╔══════════════════════════════════════════════════╗${NC}"
-    log "${YELLOW}║     NETWORK LOCKDOWN — AKTIVIERUNG              ║${NC}"
-    log "${YELLOW}╚══════════════════════════════════════════════════╝${NC}"
+    log "${MAGENTA}╔══════════════════════════════════════════════════╗${NC}"
+    log "${MAGENTA}║     NETWORK LOCKDOWN — AKTIVIERUNG              ║${NC}"
+    log "${MAGENTA}╚══════════════════════════════════════════════════╝${NC}"
 
     # Aktuelle Regeln sichern
     iptables-save  > "$BACKUP_V4" 2>/dev/null || true
     ip6tables-save > "$BACKUP_V6" 2>/dev/null || true
-    log "${BLUE}iptables-Backup: $BACKUP_V4${NC}"
-    log "${BLUE}ip6tables-Backup: $BACKUP_V6${NC}"
+    log "${CYAN}iptables-Backup: $BACKUP_V4${NC}"
+    log "${CYAN}ip6tables-Backup: $BACKUP_V6${NC}"
 
     # IPs auflösen
-    log "${BLUE}Löse Anthropic-Domains auf...${NC}"
+    log "${CYAN}Löse Anthropic-Domains auf...${NC}"
 
     local ipv4_ips=()
     local ipv6_ips=()
@@ -250,20 +250,20 @@ activate_lockdown() {
     log "${GREEN}  Erlaubt:  Localhost/Loopback${NC}"
     log "${RED}  Blockiert: Gesamter übriger Netzwerkverkehr${NC}"
     log ""
-    log "${BLUE}Deaktivieren mit: sudo $0 off${NC}"
-    log "${BLUE}Status prüfen:   sudo $0 status${NC}"
-    log "${BLUE}IPs aktualisieren: sudo $0 refresh${NC}"
+    log "${CYAN}Deaktivieren mit: sudo $0 off${NC}"
+    log "${CYAN}Status prüfen:   sudo $0 status${NC}"
+    log "${CYAN}IPs aktualisieren: sudo $0 refresh${NC}"
     log ""
-    log "${YELLOW}Forensische Analyse-Guideline:${NC}"
-    log "${BLUE}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
+    log "${MAGENTA}Forensische Analyse-Guideline:${NC}"
+    log "${CYAN}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
 }
 
 deactivate_lockdown() {
     check_root
 
-    log "${YELLOW}╔══════════════════════════════════════════════════╗${NC}"
-    log "${YELLOW}║     NETWORK LOCKDOWN — DEAKTIVIERUNG            ║${NC}"
-    log "${YELLOW}╚══════════════════════════════════════════════════╝${NC}"
+    log "${MAGENTA}╔══════════════════════════════════════════════════╗${NC}"
+    log "${MAGENTA}║     NETWORK LOCKDOWN — DEAKTIVIERUNG            ║${NC}"
+    log "${MAGENTA}╚══════════════════════════════════════════════════╝${NC}"
 
     local backup_v4=""
     local backup_v6=""
@@ -277,26 +277,26 @@ deactivate_lockdown() {
     # Aus Backup wiederherstellen oder auf ACCEPT zurücksetzen
     if [[ -n "$backup_v4" && -f "$backup_v4" ]]; then
         iptables-restore < "$backup_v4"
-        log "${BLUE}IPv4-Regeln aus Backup wiederhergestellt${NC}"
+        log "${CYAN}IPv4-Regeln aus Backup wiederhergestellt${NC}"
     else
         iptables -F
         iptables -X 2>/dev/null || true
         iptables -P INPUT ACCEPT
         iptables -P FORWARD ACCEPT
         iptables -P OUTPUT ACCEPT
-        log "${BLUE}IPv4-Regeln auf ACCEPT zurückgesetzt${NC}"
+        log "${CYAN}IPv4-Regeln auf ACCEPT zurückgesetzt${NC}"
     fi
 
     if [[ -n "$backup_v6" && -f "$backup_v6" ]]; then
         ip6tables-restore < "$backup_v6"
-        log "${BLUE}IPv6-Regeln aus Backup wiederhergestellt${NC}"
+        log "${CYAN}IPv6-Regeln aus Backup wiederhergestellt${NC}"
     else
         ip6tables -F
         ip6tables -X 2>/dev/null || true
         ip6tables -P INPUT ACCEPT
         ip6tables -P FORWARD ACCEPT
         ip6tables -P OUTPUT ACCEPT
-        log "${BLUE}IPv6-Regeln auf ACCEPT zurückgesetzt${NC}"
+        log "${CYAN}IPv6-Regeln auf ACCEPT zurückgesetzt${NC}"
     fi
 
     rm -f "$LOCKFILE"
@@ -317,15 +317,15 @@ show_status() {
     fi
 
     echo ""
-    printf '%b\n' "${BLUE}IPv4-Regeln (iptables):${NC}"
+    printf '%b\n' "${CYAN}IPv4-Regeln (iptables):${NC}"
     iptables -L -n --line-numbers 2>/dev/null || echo "(iptables nicht verfügbar)"
 
     echo ""
-    printf '%b\n' "${BLUE}IPv6-Regeln (ip6tables):${NC}"
+    printf '%b\n' "${CYAN}IPv6-Regeln (ip6tables):${NC}"
     ip6tables -L -n --line-numbers 2>/dev/null || echo "(ip6tables nicht verfügbar)"
 
     echo ""
-    printf '%b\n' "${BLUE}Claude Code Konnektivitätstest:${NC}"
+    printf '%b\n' "${CYAN}Claude Code Konnektivitätstest:${NC}"
     if curl -sS --connect-timeout 5 -o /dev/null -w "%{http_code}" https://api.anthropic.com 2>/dev/null | grep -qE "^[245]"; then
         printf '%b\n' "${GREEN}  api.anthropic.com: erreichbar${NC}"
     else
@@ -349,7 +349,7 @@ refresh_ips() {
         exit 1
     fi
 
-    log "${BLUE}Aktualisiere Anthropic-IPs — Lockdown wird neu aufgebaut...${NC}"
+    log "${CYAN}Aktualisiere Anthropic-IPs — Lockdown wird neu aufgebaut...${NC}"
 
     # Backup-Pfade übernehmen, bevor Lockfile gelöscht wird
     local backup_v4
@@ -374,16 +374,16 @@ refresh_ips() {
 
 show_rules() {
     echo ""
-    printf '%b\n' "${BLUE}Aktuelle IPv4-Regeln:${NC}"
+    printf '%b\n' "${CYAN}Aktuelle IPv4-Regeln:${NC}"
     iptables -L -n -v 2>/dev/null || echo "(nicht verfügbar)"
     echo ""
-    printf '%b\n' "${BLUE}Aktuelle IPv6-Regeln:${NC}"
+    printf '%b\n' "${CYAN}Aktuelle IPv6-Regeln:${NC}"
     ip6tables -L -n -v 2>/dev/null || echo "(nicht verfügbar)"
 }
 
 show_help() {
     echo ""
-    printf '%b\n' "${BLUE}network-lockdown-linux.sh — Emergency Network Lockdown für Linux${NC}"
+    printf '%b\n' "${CYAN}network-lockdown-linux.sh — Emergency Network Lockdown für Linux${NC}"
     echo ""
     echo "Blockiert den gesamten Netzwerkverkehr außer Claude Code CLI."
     echo "Nutzt iptables/ip6tables."
@@ -400,8 +400,8 @@ show_help() {
     printf '%b\n' "${YELLOW}Hinweis: Erfordert root-Rechte (sudo).${NC}"
     printf '%b\n' "${YELLOW}Benötigt: iptables, dig (dnsutils), curl${NC}"
     echo ""
-    printf '%b\n' "${YELLOW}Forensische Analyse-Guideline:${NC}"
-    printf '%b\n' "${BLUE}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
+    printf '%b\n' "${MAGENTA}Forensische Analyse-Guideline:${NC}"
+    printf '%b\n' "${CYAN}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
     echo ""
 }
 
