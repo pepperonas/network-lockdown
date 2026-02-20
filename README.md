@@ -448,9 +448,8 @@ Diese Skripte werden ohne Gewährleistung bereitgestellt. Testen Sie sie in eine
 
 **Warnung:** Ein aktiver Lockdown blockiert alle Netzwerkverbindungen außer Claude Code CLI. SSH-Verbindungen, Updates, Browser etc. funktionieren nicht.
 
-## Version
+---
 
-- **macOS Script:** network-lockdown.sh
-- **Linux Script:** network-lockdown-linux.sh
-- **Windows Script:** network-lockdown-windows.ps1
-- **Dokumentation:** README-network-lockdown.md (2026-02-20)
+<p align="center">
+  🔐 Forged behind locked doors in Berlin by <a href="https://github.com/pepperonas">Martin Pfeffer</a>
+</p>
