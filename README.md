@@ -30,14 +30,14 @@
 
 ## Übersicht
 
-Notfall-Netzwerk-Lockdown fuer macOS, Linux und Windows. Bei einem Sicherheitsvorfall wird der gesamte Netzwerkverkehr auf Kernel-Ebene blockiert — **mit einer Ausnahme: Claude Code CLI bleibt online**. Damit kannst du den Rechner isolieren und trotzdem mit KI-Unterstuetzung (Claude Opus 4.6) forensische Analyse betreiben, Schadcode identifizieren und das System bereinigen.
+Notfall-Netzwerk-Lockdown für macOS, Linux und Windows. Bei einem Sicherheitsvorfall wird der gesamte Netzwerkverkehr auf Kernel-Ebene blockiert — **mit einer Ausnahme: Claude Code CLI bleibt online**. Damit kannst du den Rechner isolieren und trotzdem mit KI-Unterstützung (Claude Opus 4.6) forensische Analyse betreiben, Schadcode identifizieren und das System bereinigen.
 
 Im aktivierten Zustand ist erlaubt:
 
 - Claude Code CLI-Verbindungen zur Anthropic API (api.anthropic.com, Port 443 TLS)
 - Localhost/Loopback-Verkehr
-- DNS-Anfragen (notwendig fuer IP-Aufloesung)
-- Rueckpakete etablierter Verbindungen
+- DNS-Anfragen (notwendig für IP-Auflösung)
+- Rückpakete etablierter Verbindungen
 
 Alles andere wird blockiert — Browser, SSH, Updates, C2-Callbacks, Reverse Shells, Datenexfiltration.
 
@@ -59,15 +59,15 @@ Claude Code (empfohlen: Opus 4.6) ist ein vollwertiger KI-Agent im Terminal. Er 
 ```bash
 sudo ./network-lockdown.sh on
 ```
-Ab jetzt kann kein Prozess mehr nach aussen kommunizieren — kein Datenabfluss, kein C2-Callback, keine Exfiltration. Nur Claude Code CLI bleibt online.
+Ab jetzt kann kein Prozess mehr nach außen kommunizieren — kein Datenabfluss, kein C2-Callback, keine Exfiltration. Nur Claude Code CLI bleibt online.
 
 **2. Forensische Analyse mit Claude Code**
 ```
-> "Durchsuche /var/log auf verdaechtige SSH-Logins der letzten 48 Stunden"
-> "Finde alle kuerzlich geaenderten Dateien in /etc und /usr/local/bin"
+> "Durchsuche /var/log auf verdächtige SSH-Logins der letzten 48 Stunden"
+> "Finde alle kürzlich geänderten Dateien in /etc und /usr/local/bin"
 > "Analysiere diese Binary auf bekannte Malware-Patterns"
-> "Zeige alle aktiven Cronjobs und systemd Timer — gibt es unbekannte Eintraege?"
-> "Pruefe alle offenen Ports und die zugehoerigen Prozesse"
+> "Zeige alle aktiven Cronjobs und systemd Timer — gibt es unbekannte Einträge?"
+> "Prüfe alle offenen Ports und die zugehörigen Prozesse"
 ```
 
 **3. Schadcode identifizieren und beseitigen**
@@ -75,13 +75,13 @@ Ab jetzt kann kein Prozess mehr nach aussen kommunizieren — kein Datenabfluss,
 > "Diese Datei sieht nach einer Reverse Shell aus — analysiere den Code"
 > "Finde alle Dateien die von diesem User in den letzten 24h erstellt wurden"
 > "Secure-erase der kompromittierten Dateien mit shred"
-> "Pruefe ob authorized_keys manipuliert wurde"
+> "Prüfe ob authorized_keys manipuliert wurde"
 ```
 
-**4. System haerten und Lockdown aufheben**
+**4. System härten und Lockdown aufheben**
 ```
 > "Erstelle ein Skript das alle gefundenen IOCs (Indicators of Compromise) dokumentiert"
-> "Setze die SSH-Konfiguration auf sichere Defaults zurueck"
+> "Setze die SSH-Konfiguration auf sichere Defaults zurück"
 ```
 ```bash
 sudo ./network-lockdown.sh off
@@ -89,15 +89,15 @@ sudo ./network-lockdown.sh off
 
 ### Warum das funktioniert
 
-- **Vollstaendige Netzwerkisolation** auf Kernel-Ebene — kein Prozess kann das umgehen
-- **Claude Code CLI braucht nur HTTPS zu api.anthropic.com** — eine einzige, verschluesselte Verbindung
+- **Vollständige Netzwerkisolation** auf Kernel-Ebene — kein Prozess kann das umgehen
+- **Claude Code CLI braucht nur HTTPS zu api.anthropic.com** — eine einzige, verschlüsselte Verbindung
 - **Claude Opus 4.6 analysiert beliebige Dateien**, Logs, Binaries und Konfigurationen direkt im Terminal
-- **Kein zweiter Rechner noetig** — die KI laeuft remote bei Anthropic, du brauchst nur das Terminal
-- **Angreifer verlieren jede Verbindung** — C2-Server, Exfiltrations-Kanaele, Reverse Shells werden sofort gekappt
+- **Kein zweiter Rechner nötig** — die KI läuft remote bei Anthropic, du brauchst nur das Terminal
+- **Angreifer verlieren jede Verbindung** — C2-Server, Exfiltrations-Kanäle, Reverse Shells werden sofort gekappt
 
 Das Ergebnis: Du hast einen forensisch isolierten Rechner mit einem KI-Experten an deiner Seite.
 
-> **Ausfuehrliche Schritt-fuer-Schritt-Anleitung:** Siehe [INCIDENT-RESPONSE-GUIDE.md](INCIDENT-RESPONSE-GUIDE.md) — 11-Phasen-Guideline mit konkreten Claude-Code-Prompts fuer forensische Analyse, Schadcode-Beseitigung und System-Haertung.
+> **Ausführliche Schritt-für-Schritt-Anleitung:** Siehe [INCIDENT-RESPONSE-GUIDE.md](INCIDENT-RESPONSE-GUIDE.md) — 11-Phasen-Guideline mit konkreten Claude-Code-Prompts für forensische Analyse, Schadcode-Beseitigung und System-Härtung.
 
 ---
 
@@ -455,22 +455,22 @@ Get-Service Dnscache | Start-Service
 
 ## Farbschema / Color Scheme
 
-Alle Skripte verwenden ein einheitliches Farbschema, optimiert fuer dunkle Terminals:
+Alle Skripte verwenden ein einheitliches Farbschema, optimiert für dunkle Terminals:
 
 | Farbe | ANSI Code (Bash) | PowerShell | Verwendung |
 |-------|------------------|------------|------------|
 | **Rot** | `\033[1;31m` | `Red` | Fehler, Blockiert, Kritisch |
-| **Gruen** | `\033[1;32m` | `Green` | Erfolg, Erlaubt, OK |
+| **Grün** | `\033[1;32m` | `Green` | Erfolg, Erlaubt, OK |
 | **Gelb** | `\033[1;33m` | `Yellow` | Warnungen, Vorsicht |
 | **Cyan** | `\033[0;96m` | `Cyan` | Info, Fortschritt, Anweisungen |
 | **Magenta** | `\033[0;95m` | `Magenta` | Abschnitts-Header, Banner-Rahmen, Akzente |
-| **Weiss** | `\033[1;37m` | `White` | Titel, primaere Labels |
-| **Grau** | `\033[0;90m` | `DarkGray` | Sekundaer (Version, Attribution, Details) |
+| **Weiss** | `\033[1;37m` | `White` | Titel, primäre Labels |
+| **Grau** | `\033[0;90m` | `DarkGray` | Sekundär (Version, Attribution, Details) |
 
 **Design-Prinzipien:**
-- Bright-Varianten (`1;3xm` / `0;9xm`) fuer maximale Lesbarkeit auf dunklen Hintergruenden
+- Bright-Varianten (`1;3xm` / `0;9xm`) für maximale Lesbarkeit auf dunklen Hintergründen
 - Klare semantische Trennung: Gelb = nur Warnungen, Magenta = nur Struktur/Header
-- Konsistent ueber alle drei Plattformen (macOS, Linux, Windows)
+- Konsistent über alle drei Plattformen (macOS, Linux, Windows)
 
 ## Lizenz und Haftung
 
