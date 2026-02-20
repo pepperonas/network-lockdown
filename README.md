@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" alt="Network Lockdown — AI-assisted Incident Response" width="100%">
+  <img src="artwork/banner.png" alt="Network Lockdown — AI-assisted Incident Response" width="100%">
 </p>
 
 <h1 align="center">Network Lockdown</h1>
