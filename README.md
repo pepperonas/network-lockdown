@@ -98,28 +98,32 @@ Die Paketfilterung erfolgt nicht im Userspace, sondern direkt im Betriebssystem-
 
 ### Architektur-Überblick
 
+**Ausgehender Traffic:**
+
 ```mermaid
-graph TD
-    subgraph OUT["AUSGEHEND"]
-        A["App sendet Paket"]:::node --> B["Kernel Network Stack"]:::node
-        B --> D{"FIREWALL\nPF / Netfilter / WFP"}:::fw
+graph LR
+    A["App sendet Paket"]:::node --> B["Kernel Network Stack"]:::node
+    B --> D{"FIREWALL<br/>PF / Netfilter / WFP"}:::fw
+    D -- "Anthropic API :443" --> PASS["PASS"]:::pass
+    D -- "DNS :53" --> PASS
+    D -- "Loopback" --> PASS
+    D -- "Alles andere" --> DROP["DROP"]:::drop
+    PASS --> NET["Netzwerk"]:::node
 
-        D -- "Anthropic API :443" --> PASS1["PASS"]:::pass
-        D -- "DNS :53" --> PASS1
-        D -- "Loopback" --> PASS1
-        D -- "Alles andere" --> DROP1["DROP"]:::drop
+    classDef node fill:#1a1a2e,stroke:#555,color:#e0e0e0
+    classDef fw fill:#0d47a1,stroke:#1565c0,color:#ffffff
+    classDef pass fill:#1b5e20,stroke:#2e7d32,color:#ffffff
+    classDef drop fill:#b71c1c,stroke:#c62828,color:#ffffff
+```
 
-        PASS1 --> NET["Netzwerk"]:::node
-    end
+**Eingehender Traffic:**
 
-    subgraph IN["EINGEHEND"]
-        NET2["Netzwerk"]:::node --> J{"FIREWALL\nPF / Netfilter / WFP"}:::fw
-
-        J -- "Etablierte Verbindung" --> PASS2["PASS"]:::pass
-        J -- "Alles andere" --> DROP2["DROP"]:::drop
-
-        PASS2 --> APP["Anwendung"]:::node
-    end
+```mermaid
+graph LR
+    NET["Netzwerk"]:::node --> J{"FIREWALL<br/>PF / Netfilter / WFP"}:::fw
+    J -- "Etablierte Verbindung" --> PASS["PASS"]:::pass
+    J -- "Alles andere" --> DROP["DROP"]:::drop
+    PASS --> APP["Anwendung"]:::node
 
     classDef node fill:#1a1a2e,stroke:#555,color:#e0e0e0
     classDef fw fill:#0d47a1,stroke:#1565c0,color:#ffffff
