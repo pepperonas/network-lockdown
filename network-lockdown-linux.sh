@@ -7,6 +7,8 @@
 
 set -eo pipefail 2>/dev/null || set -e
 
+VERSION="1.0.0"
+
 BACKUP_V4="/tmp/iptables-backup-$(date +%s).rules"
 BACKUP_V6="/tmp/ip6tables-backup-$(date +%s).rules"
 LOCKFILE="/tmp/claude-lockdown.active"
@@ -18,16 +20,19 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+DIM='\033[2m'
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
     echo "$msg" >> "$LOG_FILE"
-    echo -e "$1"
+    printf '%b\n' "$1"
 }
 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        echo -e "${RED}Dieses Script benötigt root-Rechte.${NC}"
+        printf '%b\n' "${RED}Dieses Script benötigt root-Rechte.${NC}"
         echo "Starte mit: sudo $0 $*"
         exit 1
     fi
@@ -45,6 +50,21 @@ check_dependencies() {
         log "Installiere z.B. mit: apt install iptables dnsutils curl"
         exit 1
     fi
+}
+
+show_banner() {
+    printf '\n'
+    printf '%b\n' "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
+    printf '%b\n' "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}   ${WHITE}NETWORK LOCKDOWN${NC}                              ${DIM}v${VERSION}${NC}   ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}   ${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}   ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}   Kernel-level emergency network isolation               ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}   Platform: ${GREEN}Linux${NC} ${DIM}(iptables/Netfilter)${NC}                   ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}   ${DIM}Martin Pfeffer - celox.io${NC}                              ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
+    printf '%b\n' "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
+    printf '\n'
 }
 
 # Anthropic-Domains auflösen und IPs sammeln
@@ -233,6 +253,9 @@ activate_lockdown() {
     log "${BLUE}Deaktivieren mit: sudo $0 off${NC}"
     log "${BLUE}Status prüfen:   sudo $0 status${NC}"
     log "${BLUE}IPs aktualisieren: sudo $0 refresh${NC}"
+    log ""
+    log "${YELLOW}Forensische Analyse-Guideline:${NC}"
+    log "${BLUE}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
 }
 
 deactivate_lockdown() {
@@ -287,33 +310,33 @@ show_status() {
     if [[ -f "$LOCKFILE" ]]; then
         local activated_at
         activated_at=$(head -1 "$LOCKFILE")
-        echo -e "${RED}Status: LOCKDOWN AKTIV${NC}"
-        echo -e "Aktiviert: $activated_at"
+        printf '%b\n' "${RED}Status: LOCKDOWN AKTIV${NC}"
+        printf '%b\n' "Aktiviert: $activated_at"
     else
-        echo -e "${GREEN}Status: Normal (kein Lockdown)${NC}"
+        printf '%b\n' "${GREEN}Status: Normal (kein Lockdown)${NC}"
     fi
 
     echo ""
-    echo -e "${BLUE}IPv4-Regeln (iptables):${NC}"
+    printf '%b\n' "${BLUE}IPv4-Regeln (iptables):${NC}"
     iptables -L -n --line-numbers 2>/dev/null || echo "(iptables nicht verfügbar)"
 
     echo ""
-    echo -e "${BLUE}IPv6-Regeln (ip6tables):${NC}"
+    printf '%b\n' "${BLUE}IPv6-Regeln (ip6tables):${NC}"
     ip6tables -L -n --line-numbers 2>/dev/null || echo "(ip6tables nicht verfügbar)"
 
     echo ""
-    echo -e "${BLUE}Claude Code Konnektivitätstest:${NC}"
+    printf '%b\n' "${BLUE}Claude Code Konnektivitätstest:${NC}"
     if curl -sS --connect-timeout 5 -o /dev/null -w "%{http_code}" https://api.anthropic.com 2>/dev/null | grep -qE "^[245]"; then
-        echo -e "${GREEN}  api.anthropic.com: erreichbar${NC}"
+        printf '%b\n' "${GREEN}  api.anthropic.com: erreichbar${NC}"
     else
-        echo -e "${RED}  api.anthropic.com: NICHT erreichbar${NC}"
+        printf '%b\n' "${RED}  api.anthropic.com: NICHT erreichbar${NC}"
     fi
 
     if [[ -f "$LOCKFILE" ]]; then
         if curl -sS --connect-timeout 3 -o /dev/null https://www.google.com 2>/dev/null; then
-            echo -e "${YELLOW}  google.com: erreichbar (Lockdown möglicherweise undicht!)${NC}"
+            printf '%b\n' "${YELLOW}  google.com: erreichbar (Lockdown möglicherweise undicht!)${NC}"
         else
-            echo -e "${GREEN}  google.com: blockiert (Lockdown funktioniert)${NC}"
+            printf '%b\n' "${GREEN}  google.com: blockiert (Lockdown funktioniert)${NC}"
         fi
     fi
 }
@@ -351,21 +374,21 @@ refresh_ips() {
 
 show_rules() {
     echo ""
-    echo -e "${BLUE}Aktuelle IPv4-Regeln:${NC}"
+    printf '%b\n' "${BLUE}Aktuelle IPv4-Regeln:${NC}"
     iptables -L -n -v 2>/dev/null || echo "(nicht verfügbar)"
     echo ""
-    echo -e "${BLUE}Aktuelle IPv6-Regeln:${NC}"
+    printf '%b\n' "${BLUE}Aktuelle IPv6-Regeln:${NC}"
     ip6tables -L -n -v 2>/dev/null || echo "(nicht verfügbar)"
 }
 
 show_help() {
     echo ""
-    echo -e "${BLUE}network-lockdown-linux.sh — Emergency Network Lockdown für Linux${NC}"
+    printf '%b\n' "${BLUE}network-lockdown-linux.sh — Emergency Network Lockdown für Linux${NC}"
     echo ""
     echo "Blockiert den gesamten Netzwerkverkehr außer Claude Code CLI."
     echo "Nutzt iptables/ip6tables."
     echo ""
-    echo -e "Verwendung: ${GREEN}sudo $0 <befehl>${NC}"
+    printf '%b\n' "Verwendung: ${GREEN}sudo $0 <befehl>${NC}"
     echo ""
     echo "  on       Lockdown aktivieren"
     echo "  off      Lockdown deaktivieren, Netzwerk wiederherstellen"
@@ -374,12 +397,16 @@ show_help() {
     echo "  rules    Aktuelle iptables-Regeln anzeigen"
     echo "  help     Diese Hilfe anzeigen"
     echo ""
-    echo -e "${YELLOW}Hinweis: Erfordert root-Rechte (sudo).${NC}"
-    echo -e "${YELLOW}Benötigt: iptables, dig (dnsutils), curl${NC}"
+    printf '%b\n' "${YELLOW}Hinweis: Erfordert root-Rechte (sudo).${NC}"
+    printf '%b\n' "${YELLOW}Benötigt: iptables, dig (dnsutils), curl${NC}"
+    echo ""
+    printf '%b\n' "${YELLOW}Forensische Analyse-Guideline:${NC}"
+    printf '%b\n' "${BLUE}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
     echo ""
 }
 
 # === Main ===
+show_banner
 case "${1:-help}" in
     on|activate|enable)
         activate_lockdown
@@ -400,7 +427,7 @@ case "${1:-help}" in
         show_help
         ;;
     *)
-        echo -e "${RED}Unbekannter Befehl: $1${NC}"
+        printf '%b\n' "${RED}Unbekannter Befehl: $1${NC}"
         show_help
         exit 1
         ;;

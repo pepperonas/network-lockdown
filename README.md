@@ -88,6 +88,8 @@ sudo ./network-lockdown.sh off
 
 Das Ergebnis: Du hast einen forensisch isolierten Rechner mit einem KI-Experten an deiner Seite.
 
+> **Ausfuehrliche Schritt-fuer-Schritt-Anleitung:** Siehe [INCIDENT-RESPONSE-GUIDE.md](INCIDENT-RESPONSE-GUIDE.md) — 11-Phasen-Guideline mit konkreten Claude-Code-Prompts fuer forensische Analyse, Schadcode-Beseitigung und System-Haertung.
+
 ---
 
 ## Funktionsweise: Kernel-Level Filtering

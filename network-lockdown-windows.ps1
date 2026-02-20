@@ -13,6 +13,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$VERSION = "1.0.0"
+
 $LOCKFILE = "$env:TEMP\claude-lockdown.active"
 $LOG_FILE = "$env:TEMP\claude-lockdown.log"
 $BACKUP_FILE = "$env:TEMP\claude-lockdown-backup.wfw"
@@ -286,6 +288,9 @@ function Enable-Lockdown {
     Write-Log "Deaktivieren mit: .\network-lockdown-windows.ps1 off" "Cyan"
     Write-Log "Status pruefen:   .\network-lockdown-windows.ps1 status" "Cyan"
     Write-Log "IPs aktualisieren: .\network-lockdown-windows.ps1 refresh" "Cyan"
+    Write-Log "" "White"
+    Write-Log "Forensische Analyse-Guideline:" "Yellow"
+    Write-Log "  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md" "Cyan"
 }
 
 function Disable-Lockdown {
@@ -443,6 +448,54 @@ function Show-Rules {
     }
 }
 
+function Show-Banner {
+    $ver = "v$VERSION"
+    $titleText = "NETWORK LOCKDOWN"
+    $innerWidth = 58
+    $titlePad = $innerWidth - 3 - $titleText.Length - $ver.Length - 3
+
+    Write-Host ""
+    Write-Host ("╔" + ("═" * $innerWidth) + "╗") -ForegroundColor Cyan
+    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Cyan
+    # Title
+    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "   " -NoNewline
+    Write-Host $titleText -ForegroundColor White -NoNewline
+    Write-Host (" " * $titlePad) -NoNewline
+    Write-Host $ver -ForegroundColor DarkGray -NoNewline
+    Write-Host "   " -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    # Separator
+    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host ("   " + ("━" * 52) + "   ") -ForegroundColor DarkGray -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    # Description
+    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host ("   Kernel-level emergency network isolation" + (" " * 15)) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    # Platform
+    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "   Platform: " -NoNewline
+    Write-Host "Windows" -ForegroundColor Green -NoNewline
+    Write-Host " " -NoNewline
+    Write-Host "(WFP/NetSecurity)" -ForegroundColor DarkGray -NoNewline
+    Write-Host (" " * 20) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    # Empty
+    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Cyan
+    # Developer
+    Write-Host "║" -ForegroundColor Cyan -NoNewline
+    Write-Host "   " -NoNewline
+    Write-Host "Martin Pfeffer - celox.io" -ForegroundColor DarkGray -NoNewline
+    Write-Host (" " * 30) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    # Empty
+    Write-Host ("║" + (" " * $innerWidth) + "║") -ForegroundColor Cyan
+    # Bottom
+    Write-Host ("╚" + ("═" * $innerWidth) + "╝") -ForegroundColor Cyan
+    Write-Host ""
+}
+
 function Show-Help {
     Write-Host ""
     Write-Host "network-lockdown-windows.ps1 — Emergency Network Lockdown fuer Windows" -ForegroundColor Cyan
@@ -462,9 +515,13 @@ function Show-Help {
     Write-Host ""
     Write-Host "Hinweis: Erfordert Administrator-Rechte (Als Admin ausfuehren)." -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "Forensische Analyse-Guideline:" -ForegroundColor Yellow
+    Write-Host "  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md" -ForegroundColor Cyan
+    Write-Host ""
 }
 
 # === Main ===
+Show-Banner
 switch ($Action) {
     "on"      { Enable-Lockdown }
     "off"     { Disable-Lockdown }
