@@ -7,7 +7,8 @@
 
 set -eo pipefail 2>/dev/null || set -e
 
-VERSION="1.1.0"
+VERSION="1.2.0"
+GITHUB_RAW="https://github.com/pepperonas/network-lockdown/raw/main"
 
 BACKUP_V4="/tmp/iptables-backup-$(date +%s).rules"
 BACKUP_V6="/tmp/ip6tables-backup-$(date +%s).rules"
@@ -381,6 +382,30 @@ show_rules() {
     ip6tables -L -n -v 2>/dev/null || echo "(nicht verfügbar)"
 }
 
+download_guide() {
+    local dest="${2:-.}"
+    log "${CYAN}Lade Incident-Response-Guide herunter...${NC}"
+
+    if ! command -v curl &>/dev/null; then
+        log "${RED}curl wird benötigt, ist aber nicht installiert.${NC}"
+        exit 1
+    fi
+
+    curl -fSL -o "$dest/INCIDENT-RESPONSE-GUIDE.pdf" \
+        "$GITHUB_RAW/INCIDENT-RESPONSE-GUIDE.pdf" 2>/dev/null
+    curl -fSL -o "$dest/INCIDENT-RESPONSE-GUIDE.en.pdf" \
+        "$GITHUB_RAW/INCIDENT-RESPONSE-GUIDE.en.pdf" 2>/dev/null
+
+    if [[ -f "$dest/INCIDENT-RESPONSE-GUIDE.pdf" && -f "$dest/INCIDENT-RESPONSE-GUIDE.en.pdf" ]]; then
+        log "${GREEN}Heruntergeladen:${NC}"
+        log "  $dest/INCIDENT-RESPONSE-GUIDE.pdf (Deutsch)"
+        log "  $dest/INCIDENT-RESPONSE-GUIDE.en.pdf (English)"
+    else
+        log "${RED}Download fehlgeschlagen. Prüfe deine Internetverbindung.${NC}"
+        exit 1
+    fi
+}
+
 show_help() {
     echo ""
     printf '%b\n' "${CYAN}network-lockdown-linux.sh — Emergency Network Lockdown für Linux${NC}"
@@ -395,6 +420,7 @@ show_help() {
     echo "  status   Aktuellen Status und Regeln anzeigen"
     echo "  refresh  Anthropic-IPs neu auflösen (bei CDN-Wechsel)"
     echo "  rules    Aktuelle iptables-Regeln anzeigen"
+    echo "  guide    Incident-Response-Guide (PDF) herunterladen"
     echo "  help     Diese Hilfe anzeigen"
     echo ""
     printf '%b\n' "${YELLOW}Hinweis: Erfordert root-Rechte (sudo).${NC}"
@@ -422,6 +448,9 @@ case "${1:-help}" in
         ;;
     rules|show)
         show_rules
+        ;;
+    guide)
+        download_guide "$@"
         ;;
     help|--help|-h)
         show_help

@@ -7,13 +7,14 @@
 
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("on", "off", "status", "refresh", "rules", "help")]
+    [ValidateSet("on", "off", "status", "refresh", "rules", "guide", "help")]
     [string]$Action = "help"
 )
 
 $ErrorActionPreference = "Stop"
 
-$VERSION = "1.1.0"
+$VERSION = "1.2.0"
+$GITHUB_RAW = "https://github.com/pepperonas/network-lockdown/raw/main"
 
 $LOCKFILE = "$env:TEMP\claude-lockdown.active"
 $LOG_FILE = "$env:TEMP\claude-lockdown.log"
@@ -460,6 +461,25 @@ function Show-Rules {
     }
 }
 
+function Get-Guide {
+    $dest = if ($args.Count -gt 0) { $args[0] } else { "." }
+    Write-Log "Lade Incident-Response-Guide herunter..." "Cyan"
+
+    try {
+        Invoke-WebRequest -Uri "$GITHUB_RAW/INCIDENT-RESPONSE-GUIDE.pdf" `
+            -OutFile "$dest\INCIDENT-RESPONSE-GUIDE.pdf" -UseBasicParsing
+        Invoke-WebRequest -Uri "$GITHUB_RAW/INCIDENT-RESPONSE-GUIDE.en.pdf" `
+            -OutFile "$dest\INCIDENT-RESPONSE-GUIDE.en.pdf" -UseBasicParsing
+
+        Write-Log "Heruntergeladen:" "Green"
+        Write-Log "  $dest\INCIDENT-RESPONSE-GUIDE.pdf (Deutsch)" "White"
+        Write-Log "  $dest\INCIDENT-RESPONSE-GUIDE.en.pdf (English)" "White"
+    }
+    catch {
+        Write-Log "Download fehlgeschlagen. Pruefe deine Internetverbindung." "Red"
+    }
+}
+
 function Show-Banner {
     $ver = "v$VERSION"
     $titleText = "NETWORK LOCKDOWN"
@@ -523,6 +543,7 @@ function Show-Help {
     Write-Host "  status   Aktuellen Status und Regeln anzeigen"
     Write-Host "  refresh  Anthropic-IPs neu aufloesen (bei CDN-Wechsel)"
     Write-Host "  rules    Aktuelle Firewall-Regeln detailliert anzeigen"
+    Write-Host "  guide    Incident-Response-Guide (PDF) herunterladen"
     Write-Host "  help     Diese Hilfe anzeigen"
     Write-Host ""
     Write-Host "Hinweis: Erfordert Administrator-Rechte (Als Admin ausfuehren)." -ForegroundColor Yellow
@@ -540,6 +561,7 @@ switch ($Action) {
     "status"  { Show-Status }
     "refresh" { Update-IPs }
     "rules"   { Show-Rules }
+    "guide"   { Get-Guide }
     "help"    { Show-Help }
     default   { Show-Help }
 }

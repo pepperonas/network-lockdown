@@ -19,7 +19,7 @@
 <p align="center">
   <a href="https://github.com/pepperonas/network-lockdown/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pepperonas/network-lockdown/ci.yml?style=flat-square&label=tests" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pepperonas/network-lockdown?style=flat-square" alt="License"></a>
-  <img src="https://img.shields.io/badge/version-1.1.0-brightgreen?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/firewall-kernel--level-critical?style=flat-square&color=red" alt="Kernel-Level">
   <img src="https://img.shields.io/badge/AI-Claude%20Opus%204.6-blueviolet?style=flat-square" alt="Claude Opus 4.6">
@@ -247,6 +247,9 @@ sudo ./network-lockdown.sh rules
 # Lockdown deaktivieren
 sudo ./network-lockdown.sh off
 
+# Incident-Response-Guide (PDF) herunterladen
+./network-lockdown.sh guide
+
 # Hilfe anzeigen
 ./network-lockdown.sh help
 ```
@@ -271,6 +274,9 @@ sudo ./network-lockdown.sh off
 # Lockdown deaktivieren
 .\network-lockdown-windows.ps1 off
 
+# Incident-Response-Guide (PDF) herunterladen
+.\network-lockdown-windows.ps1 guide
+
 # Hilfe anzeigen
 .\network-lockdown-windows.ps1 help
 ```
@@ -284,6 +290,7 @@ sudo ./network-lockdown.sh off
 | `status` | Zeigt aktuellen Status (aktiv/inaktiv) und letzte Aktivierung |
 | `refresh` | Aktualisiert Anthropic IP-Adressen, reaktiviert Lockdown automatisch |
 | `rules` | Zeigt alle aktiven Lockdown-Rules im Detail |
+| `guide` | Lädt den Incident-Response-Guide als PDF herunter (DE + EN) |
 | `help` | Zeigt Verwendungshinweise |
 
 ## Erlaubter Netzwerkverkehr

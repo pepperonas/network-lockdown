@@ -7,7 +7,8 @@
 
 set -eo pipefail 2>/dev/null || set -e
 
-VERSION="1.1.0"
+VERSION="1.2.0"
+GITHUB_RAW="https://github.com/pepperonas/network-lockdown/raw/main"
 
 PF_CONF="/etc/pf.anchors/claude-lockdown"
 PF_ANCHOR_NAME="claude-lockdown"
@@ -325,6 +326,7 @@ show_help() {
     echo "  status   Aktuellen Status und Regeln anzeigen"
     echo "  refresh  Anthropic-IPs neu auflösen (bei CDN-Wechsel)"
     echo "  rules    Aktuelle Regeln anzeigen (ohne Aktivierung)"
+    echo "  guide    Incident-Response-Guide (PDF) herunterladen"
     echo "  help     Diese Hilfe anzeigen"
     echo ""
     printf '%b\n' "${YELLOW}Hinweis: Erfordert root-Rechte (sudo).${NC}"
@@ -340,6 +342,30 @@ show_rules() {
     printf '%b\n' "${CYAN}Generierte Regeln:${NC}"
     cat "$PF_CONF"
     rm -f "$PF_CONF"
+}
+
+download_guide() {
+    local dest="${2:-.}"
+    log "${CYAN}Lade Incident-Response-Guide herunter...${NC}"
+
+    if ! command -v curl &>/dev/null; then
+        log "${RED}curl wird benötigt, ist aber nicht installiert.${NC}"
+        exit 1
+    fi
+
+    curl -fSL -o "$dest/INCIDENT-RESPONSE-GUIDE.pdf" \
+        "$GITHUB_RAW/INCIDENT-RESPONSE-GUIDE.pdf" 2>/dev/null
+    curl -fSL -o "$dest/INCIDENT-RESPONSE-GUIDE.en.pdf" \
+        "$GITHUB_RAW/INCIDENT-RESPONSE-GUIDE.en.pdf" 2>/dev/null
+
+    if [[ -f "$dest/INCIDENT-RESPONSE-GUIDE.pdf" && -f "$dest/INCIDENT-RESPONSE-GUIDE.en.pdf" ]]; then
+        log "${GREEN}Heruntergeladen:${NC}"
+        log "  $dest/INCIDENT-RESPONSE-GUIDE.pdf (Deutsch)"
+        log "  $dest/INCIDENT-RESPONSE-GUIDE.en.pdf (English)"
+    else
+        log "${RED}Download fehlgeschlagen. Prüfe deine Internetverbindung.${NC}"
+        exit 1
+    fi
 }
 
 # === Main ===
@@ -359,6 +385,9 @@ case "${1:-help}" in
         ;;
     rules|show)
         show_rules
+        ;;
+    guide)
+        download_guide "$@"
         ;;
     help|--help|-h)
         show_help
