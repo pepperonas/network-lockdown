@@ -17,14 +17,36 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/pepperonas/network-lockdown/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pepperonas/network-lockdown/ci.yml?style=flat-square&label=tests" alt="Tests"></a>
+  <a href="https://github.com/pepperonas/network-lockdown/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pepperonas/network-lockdown/ci.yml?style=flat-square&label=CI" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pepperonas/network-lockdown?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/version-1.2.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/firewall-kernel--level-critical?style=flat-square&color=red" alt="Kernel-Level">
   <img src="https://img.shields.io/badge/AI-Claude%20Opus%204.6-blueviolet?style=flat-square" alt="Claude Opus 4.6">
   <img src="https://img.shields.io/badge/use%20case-incident%20response-orange?style=flat-square" alt="Incident Response">
+</p>
+
+<p align="center">
   <a href="https://github.com/pepperonas/network-lockdown/stargazers"><img src="https://img.shields.io/github/stars/pepperonas/network-lockdown?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/pepperonas/network-lockdown/network/members"><img src="https://img.shields.io/github/forks/pepperonas/network-lockdown?style=flat-square" alt="Forks"></a>
+  <a href="https://github.com/pepperonas/network-lockdown/issues"><img src="https://img.shields.io/github/issues/pepperonas/network-lockdown?style=flat-square" alt="Issues"></a>
+  <a href="https://github.com/pepperonas/network-lockdown/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome"></a>
+  <img src="https://img.shields.io/github/last-commit/pepperonas/network-lockdown?style=flat-square" alt="Last Commit">
+  <img src="https://img.shields.io/github/repo-size/pepperonas/network-lockdown?style=flat-square" alt="Repo Size">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/shell-bash-4EAA25?style=flat-square&logo=gnubash&logoColor=white" alt="Bash">
+  <img src="https://img.shields.io/badge/shell-powershell-5391FE?style=flat-square&logo=powershell&logoColor=white" alt="PowerShell">
+  <img src="https://img.shields.io/badge/linter-ShellCheck-42b983?style=flat-square" alt="ShellCheck">
+  <img src="https://img.shields.io/badge/built%20with-Claude%20Code-blueviolet?style=flat-square&logo=anthropic&logoColor=white" alt="Built with Claude Code">
+  <img src="https://img.shields.io/badge/maintained-yes-green?style=flat-square" alt="Maintained">
+</p>
+
+<p align="center">
+  <a href="https://www.paypal.com/donate/?business=martinpaush@gmail.com&currency_code=EUR">
+    <img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate via PayPal">
+  </a>
 </p>
 
 ---
