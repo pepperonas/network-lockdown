@@ -83,6 +83,19 @@ resolve_ips() {
     printf '%s\n' "${ips[@]}" | sort -u
 }
 
+# Docker-Erkennung. Docker Desktop laeuft in einer Linux-VM; ausgehender
+# Container-Traffic kommt beim Host-Prozess com.docker.backend an und geht
+# dann ueber die normale NIC raus — wird also von PF erfasst. Im Regelfall
+# greift der Lockdown auch fuer Container. Wir warnen trotzdem, weil
+# bestehende Verbindungen via flags A/A weiterlaufen koennen.
+detect_docker() {
+    if pgrep -x "Docker Desktop" &>/dev/null; then return 0; fi
+    if pgrep -x "com.docker.backend" &>/dev/null; then return 0; fi
+    if pgrep -x "com.docker.vmnetd" &>/dev/null; then return 0; fi
+    if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then return 0; fi
+    return 1
+}
+
 # Bekannte DNS-Resolver (für die Domain-Auflösung)
 get_dns_servers() {
     # Aktuelle System-DNS-Server auslesen
@@ -226,6 +239,14 @@ activate_lockdown() {
     log ""
     log "${MAGENTA}Forensische Analyse-Guideline:${NC}"
     log "${CYAN}  https://github.com/pepperonas/network-lockdown/blob/main/INCIDENT-RESPONSE-GUIDE.md${NC}"
+
+    if detect_docker; then
+        log ""
+        log "${YELLOW}Docker Desktop erkannt:${NC}"
+        log "${DIM}  PF filtert Container-Traffic via com.docker.backend (erwartetes Verhalten).${NC}"
+        log "${DIM}  Bestehende Container-Verbindungen koennen via established-flag weiterlaufen.${NC}"
+        log "${DIM}  Fuer harte Trennung: Docker Desktop beenden (osascript -e 'quit app \"Docker Desktop\"').${NC}"
+    fi
 }
 
 deactivate_lockdown() {
@@ -279,6 +300,12 @@ show_status() {
     pfctl -si 2>/dev/null | head -5
 
     echo ""
+    if detect_docker; then
+        printf '%b\n' "${YELLOW}Docker erkannt:${NC} PF filtert Container-Traffic (com.docker.backend)."
+        printf '%b\n' "${DIM}  Fuer harte Trennung: Docker Desktop beenden.${NC}"
+        echo ""
+    fi
+
     printf '%b\n' "${CYAN}Claude Code Konnektivitätstest:${NC}"
     if curl -sS --connect-timeout 5 -o /dev/null -w "%{http_code}" https://api.anthropic.com 2>/dev/null | grep -qE "^[245]"; then
         printf '%b\n' "${GREEN}  api.anthropic.com: erreichbar${NC}"

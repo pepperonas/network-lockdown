@@ -26,7 +26,7 @@ pwsh -c '[System.Management.Automation.Language.Parser]::ParseFile("network-lock
 
 ## Architecture
 
-All three scripts share the same structure and command interface (`on`, `off`, `status`, `refresh`, `rules`, `help`), but use platform-specific firewall APIs:
+All three scripts share the same structure and command interface (`on`, `off`, `status`, `refresh`, `rules`, `guide`, `help`), but use platform-specific firewall APIs:
 
 | | macOS | Linux | Windows |
 |---|---|---|---|
@@ -41,6 +41,7 @@ All three scripts share the same structure and command interface (`on`, `off`, `
 - `deactivate_lockdown` / `Disable-Lockdown` — removes rules, restores backup, deletes lockfile
 - `show_status` / `Show-Status` — displays lockdown state and connectivity test
 - `refresh_ips` / `Update-IPs` — re-resolves IPs and recreates rules without full deactivation
+- `download_guide` / `Download-Guide` — fetches the Incident Response PDF from GitHub (`pepperonas/network-lock`)
 
 **Allowed traffic when locked down:**
 - Anthropic API IPs on TCP port 443 (resolved at activation time)
@@ -58,6 +59,27 @@ These are hard-won lessons from CI debugging:
 - **Array parameters**: Pass arrays directly to `-RemoteAddress` (not `-join ","`). The cmdlet expects `String[]`, not a comma-separated string.
 - **PowerShell streams**: `Write-Host` outputs to stream 6 (Information), not stdout. Use `*>&1` to capture all streams.
 - **`$ErrorActionPreference = "Stop"`**: Any error terminates the script. Wrap external commands like `netsh` in try/catch.
+
+## Docker / Container-Bypass-Schutz
+
+Docker (und WSL2) können den Lockdown ohne Gegenmaßnahmen umgehen:
+- **Linux**: Ein laufender Docker-Daemon kann iptables-Regeln neu erzeugen und über den FORWARD-Chain Container-Traffic an der DROP-Policy vorbeischleusen ([UFW-Docker-Bypass](https://zeonedge.com/blog/ufw-docker-firewall-bypass-fix)).
+- **Windows**: WSL2 und Docker Desktop laufen in Hyper-V-VMs und umgehen `New-NetFirewallRule` komplett ([Hyper-V Firewall](https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/hyper-v-firewall)).
+- **macOS**: Geringes Risiko — `com.docker.backend` ist normaler Host-Prozess, PF greift.
+
+Was die Skripte dagegen tun:
+
+| | Maßnahme |
+|---|---|
+| **Linux** (`block_docker_traffic`) | `iptables -I DOCKER-USER 1 -j DROP` (vor Docker's eigenen Regeln) + DROP in FORWARD für alle erkannten `docker0`/`br-*` Bridges (IPv4+IPv6). Empfiehlt zusätzlich `systemctl stop docker` für vollständige Isolation. |
+| **Windows** (`Block-HyperVTraffic`) | Iteriert über alle aktiven VMCreatorIds via `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore`. Setzt `DefaultOutboundAction = Block` und legt `New-NetFirewallHyperVRule` Allow-Regeln für Anthropic + DNS + Loopback an. Erfordert Win 11 22H2+. |
+| **macOS** (`detect_docker`) | Detection + Warning. PF filtert Container-Traffic bereits auf Paket-Ebene; keine Regelmodifikation nötig. |
+
+**Erkennung** läuft via Helper (`detect_docker` / `Test-DockerOrWSL`). Bei aktivem Docker wird sowohl in `activate_lockdown`/`Enable-Lockdown` als auch in `show_status`/`Show-Status` gewarnt.
+
+**Cleanup**:
+- Linux: `iptables-restore` aus Backup räumt unsere DROP-Regeln mit ab. Falls Docker nach Aktivierung des Lockdowns Container hochfuhr, hilft `systemctl restart docker`.
+- Windows: `Restore-HyperVTraffic` setzt `DefaultOutboundAction = Allow` zurück, `Remove-LockdownRules` löscht auch HyperV-Rules.
 
 ## Documentation
 

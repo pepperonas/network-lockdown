@@ -91,10 +91,172 @@ function Get-SystemDnsServers {
     return $dnsServers | Sort-Object -Unique
 }
 
-# Alle Lockdown-Regeln entfernen
+# Alle Lockdown-Regeln entfernen (Host- + Hyper-V-Firewall)
 function Remove-LockdownRules {
     Get-NetFirewallRule -DisplayName "$RULE_PREFIX*" -ErrorAction SilentlyContinue |
         Remove-NetFirewallRule -ErrorAction SilentlyContinue
+
+    if (Get-Command Get-NetFirewallHyperVRule -ErrorAction SilentlyContinue) {
+        Get-NetFirewallHyperVRule -DisplayName "$RULE_PREFIX*" -ErrorAction SilentlyContinue |
+            Remove-NetFirewallHyperVRule -ErrorAction SilentlyContinue
+    }
+}
+
+# Hyper-V-Firewall verfuegbar? (Win 11 22H2+ mit WSL 2.0.9+ oder neuerem Docker Desktop)
+function Test-HyperVFirewallSupport {
+    return [bool](Get-Command Get-NetFirewallHyperVVMSetting -ErrorAction SilentlyContinue)
+}
+
+# Docker Desktop / WSL2 erkennen
+function Test-DockerOrWSL {
+    $found = $false
+    if (Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue) { $found = $true }
+    if (Get-Process -Name "com.docker.backend" -ErrorAction SilentlyContinue) { $found = $true }
+    if (Get-Process -Name "vmmem", "vmmemWSL" -ErrorAction SilentlyContinue) { $found = $true }
+    if (Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Status -eq "Running" }) { $found = $true }
+    if (Get-Service -Name "LxssManager" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Status -eq "Running" }) { $found = $true }
+    return $found
+}
+
+# Alle aktiven Hyper-V-VM-Creator-IDs auslesen.
+# WSL: {40E0AC32-46A5-438A-A0B2-2B479E8F2E90}
+# Docker Desktop / weitere VMs: eigene GUIDs
+function Get-ActiveVMCreatorIds {
+    if (-not (Test-HyperVFirewallSupport)) { return @() }
+    try {
+        return @(Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.Name })
+    }
+    catch {
+        return @()
+    }
+}
+
+# Hyper-V-Firewall: Outbound auf Block setzen + Allow-Regeln fuer Anthropic/DNS.
+# Wirkt fuer WSL2 + Docker Desktop (WSL2-backend & Hyper-V-backend),
+# die sonst die Host-Windows-Firewall umgehen wuerden.
+function Block-HyperVTraffic {
+    param(
+        [string[]]$AllowIPv4,
+        [string[]]$AllowIPv6,
+        [string[]]$DnsIPv4,
+        [string[]]$DnsIPv6
+    )
+
+    if (-not (Test-HyperVFirewallSupport)) {
+        Write-Log "Hyper-V-Firewall nicht verfuegbar (Win 11 22H2+ benoetigt)." "Yellow"
+        if (Test-DockerOrWSL) {
+            Write-Log "  WARNUNG: Docker/WSL2 laeuft! Lockdown wirkt NICHT auf Container/VMs." "Red"
+            Write-Log "  Empfehlung: 'wsl --shutdown' und Docker Desktop beenden." "Red"
+        }
+        return
+    }
+
+    $vmCreatorIds = Get-ActiveVMCreatorIds
+    if ($vmCreatorIds.Count -eq 0) {
+        Write-Log "Keine Hyper-V-VMs/Container aktiv." "DarkGray"
+        return
+    }
+
+    Write-Log "Konfiguriere Hyper-V-Firewall fuer $($vmCreatorIds.Count) VM-Creator(s)..." "Cyan"
+
+    foreach ($vmId in $vmCreatorIds) {
+        try {
+            # Default Outbound Block fuer diese VM-Klasse
+            Set-NetFirewallHyperVVMSetting -Name $vmId `
+                -DefaultOutboundAction Block `
+                -DefaultInboundAction Block `
+                -ErrorAction Stop
+            Write-Log "  VM $vmId : default outbound = Block" "DarkGray"
+        }
+        catch {
+            Write-Log "  VM $vmId : konnte Default-Policy nicht setzen ($($_.Exception.Message))" "Yellow"
+            continue
+        }
+
+        # Anthropic-Allow-Regeln pro VM-Creator
+        if ($AllowIPv4.Count -gt 0) {
+            New-NetFirewallHyperVRule `
+                -Name "$RULE_PREFIX-HV-Anthropic-v4-$vmId" `
+                -DisplayName "$RULE_PREFIX - HV Anthropic HTTPS v4" `
+                -VMCreatorId $vmId `
+                -Direction Outbound -Action Allow `
+                -Protocol TCP -RemotePorts 443 `
+                -RemoteAddresses $AllowIPv4 `
+                -Enabled True -ErrorAction SilentlyContinue | Out-Null
+        }
+        if ($AllowIPv6.Count -gt 0) {
+            New-NetFirewallHyperVRule `
+                -Name "$RULE_PREFIX-HV-Anthropic-v6-$vmId" `
+                -DisplayName "$RULE_PREFIX - HV Anthropic HTTPS v6" `
+                -VMCreatorId $vmId `
+                -Direction Outbound -Action Allow `
+                -Protocol TCP -RemotePorts 443 `
+                -RemoteAddresses $AllowIPv6 `
+                -Enabled True -ErrorAction SilentlyContinue | Out-Null
+        }
+
+        # DNS-Allow pro VM-Creator
+        if ($DnsIPv4.Count -gt 0) {
+            New-NetFirewallHyperVRule `
+                -Name "$RULE_PREFIX-HV-DNS-UDP-v4-$vmId" `
+                -DisplayName "$RULE_PREFIX - HV DNS UDP v4" `
+                -VMCreatorId $vmId `
+                -Direction Outbound -Action Allow `
+                -Protocol UDP -RemotePorts 53 `
+                -RemoteAddresses $DnsIPv4 `
+                -Enabled True -ErrorAction SilentlyContinue | Out-Null
+            New-NetFirewallHyperVRule `
+                -Name "$RULE_PREFIX-HV-DNS-TCP-v4-$vmId" `
+                -DisplayName "$RULE_PREFIX - HV DNS TCP v4" `
+                -VMCreatorId $vmId `
+                -Direction Outbound -Action Allow `
+                -Protocol TCP -RemotePorts 53 `
+                -RemoteAddresses $DnsIPv4 `
+                -Enabled True -ErrorAction SilentlyContinue | Out-Null
+        }
+        if ($DnsIPv6.Count -gt 0) {
+            New-NetFirewallHyperVRule `
+                -Name "$RULE_PREFIX-HV-DNS-UDP-v6-$vmId" `
+                -DisplayName "$RULE_PREFIX - HV DNS UDP v6" `
+                -VMCreatorId $vmId `
+                -Direction Outbound -Action Allow `
+                -Protocol UDP -RemotePorts 53 `
+                -RemoteAddresses $DnsIPv6 `
+                -Enabled True -ErrorAction SilentlyContinue | Out-Null
+        }
+
+        # Loopback-Verkehr innerhalb der VM erlauben
+        New-NetFirewallHyperVRule `
+            -Name "$RULE_PREFIX-HV-Loopback-$vmId" `
+            -DisplayName "$RULE_PREFIX - HV Loopback" `
+            -VMCreatorId $vmId `
+            -Direction Outbound -Action Allow `
+            -RemoteAddresses 127.0.0.0/8 `
+            -Enabled True -ErrorAction SilentlyContinue | Out-Null
+    }
+
+    Write-Log "Hyper-V-Firewall: Container-/VM-Traffic auf Anthropic+DNS beschraenkt." "Green"
+}
+
+# Hyper-V-Firewall: Default Outbound zurueck auf Allow, Allow-Rules entfernt durch Remove-LockdownRules.
+function Restore-HyperVTraffic {
+    if (-not (Test-HyperVFirewallSupport)) { return }
+
+    $vmCreatorIds = Get-ActiveVMCreatorIds
+    foreach ($vmId in $vmCreatorIds) {
+        try {
+            Set-NetFirewallHyperVVMSetting -Name $vmId `
+                -DefaultOutboundAction Allow `
+                -DefaultInboundAction Block `
+                -ErrorAction Stop
+        }
+        catch {
+            # Manche VM-Creator-Settings sind read-only oder verschwunden
+        }
+    }
 }
 
 function Enable-Lockdown {
@@ -275,6 +437,13 @@ function Enable-Lockdown {
     }
 
     # ──────────────────────────────────────────────
+    # Schritt 6: Hyper-V-Firewall (WSL2 / Docker Desktop)
+    # Ohne diese Regeln umgehen Container und WSL2 die Host-Firewall komplett.
+    # ──────────────────────────────────────────────
+    Block-HyperVTraffic -AllowIPv4 $ips.IPv4 -AllowIPv6 $ips.IPv6 `
+        -DnsIPv4 $dnsIPv4 -DnsIPv6 $dnsIPv6
+
+    # ──────────────────────────────────────────────
 
     # Lockfile erstellen
     @(
@@ -308,13 +477,17 @@ function Disable-Lockdown {
     Write-Log "=== NETWORK LOCKDOWN — DEAKTIVIERUNG ===" "Magenta"
     Write-Log ""
 
-    # Lockdown-Regeln entfernen
+    # Lockdown-Regeln entfernen (Host + Hyper-V)
     Remove-LockdownRules
     Write-Log "Lockdown-Regeln entfernt" "Cyan"
 
     # Profil-Standardaktionen wiederherstellen (Allow ist der Windows-Standard)
     Set-NetFirewallProfile -All -DefaultOutboundAction Allow -DefaultInboundAction Block
     Write-Log "Profil-Standardaktionen wiederhergestellt" "Cyan"
+
+    # Hyper-V-VM-Defaults zurueck auf Allow
+    Restore-HyperVTraffic
+    Write-Log "Hyper-V-VM-Defaults wiederhergestellt" "Cyan"
 
     # Backup wiederherstellen (stellt auch deaktivierte Regeln wieder her)
     $backupPath = $null
@@ -373,6 +546,26 @@ function Show-Status {
     }
     else {
         Write-Host "  Keine Lockdown-Regeln aktiv"
+    }
+
+    if (Test-HyperVFirewallSupport) {
+        $hvRules = Get-NetFirewallHyperVRule -DisplayName "$RULE_PREFIX*" -ErrorAction SilentlyContinue
+        if ($hvRules) {
+            Write-Host ""
+            Write-Host "Hyper-V-Firewall-Regeln (WSL2 / Docker):" -ForegroundColor Cyan
+            $hvRules | Format-Table DisplayName, Direction, Action, Enabled -AutoSize
+        }
+    }
+
+    if (Test-DockerOrWSL) {
+        Write-Host ""
+        if (Test-HyperVFirewallSupport) {
+            Write-Host "Docker/WSL2 erkannt: Hyper-V-Firewall filtert Container-/VM-Traffic." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Docker/WSL2 erkannt: KEINE Hyper-V-Firewall verfuegbar!" -ForegroundColor Red
+            Write-Host "  Container/WSL2 umgehen die Lockdown-Regeln. Empfohlen: 'wsl --shutdown' + Docker beenden." -ForegroundColor Red
+        }
     }
 
     Write-Host ""
@@ -458,6 +651,27 @@ function Show-Rules {
     }
     else {
         Write-Host "  Keine Lockdown-Regeln vorhanden"
+    }
+
+    if (Test-HyperVFirewallSupport) {
+        $hvRules = Get-NetFirewallHyperVRule -DisplayName "$RULE_PREFIX*" -ErrorAction SilentlyContinue
+        if ($hvRules) {
+            Write-Host ""
+            Write-Host "Hyper-V-Firewall-Regeln (WSL2/Docker):" -ForegroundColor Cyan
+            Write-Host ""
+            foreach ($rule in $hvRules) {
+                Write-Host "[$($rule.Direction)] $($rule.DisplayName)" -ForegroundColor White
+                Write-Host "  VMCreator: $($rule.VMCreatorId)" -ForegroundColor DarkGray
+                Write-Host "  Action: $($rule.Action) | Enabled: $($rule.Enabled)" -ForegroundColor DarkGray
+                if ($rule.RemoteAddresses -and $rule.RemoteAddresses -ne "Any") {
+                    Write-Host "  Remote: $($rule.RemoteAddresses -join ', ')" -ForegroundColor DarkGray
+                }
+                if ($rule.RemotePorts -and $rule.RemotePorts -ne "Any") {
+                    Write-Host "  Port: $($rule.Protocol)/$($rule.RemotePorts)" -ForegroundColor DarkGray
+                }
+                Write-Host ""
+            }
+        }
     }
 }
 

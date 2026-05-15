@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="artwork/banner.png" alt="Network Lockdown — AI-assisted Incident Response" width="100%">
+  <img src="artwork/nl-banner.png" alt="Network Lockdown — AI-assisted Incident Response" width="100%">
 </p>
 
 <h1 align="center">Network Lockdown</h1>
@@ -437,6 +437,49 @@ Application → Winsock → AFD.sys → TCP/IP Stack → WFP Callout Drivers →
 ```
 
 WFP filters are registered as kernel-mode objects and evaluated by the Filter Engine.
+
+## Pitfall: Docker & WSL2 bypass the lockdown
+
+Docker (and WSL2 on Windows) can **bypass the lockdown unless explicitly countered**. This isn't a bug in the scripts — it's architectural: container traffic flows past the standard firewall hooks.
+
+### Bypass risk per platform
+
+| Platform  | Bypass risk | Reason |
+|-----------|-------------|--------|
+| **Linux**   | high        | A running Docker daemon can re-create FORWARD rules (INSERT before DROP); containers communicate via FORWARD, not OUTPUT |
+| **macOS**   | low         | PF operates packet-based; `com.docker.backend` is a regular host process and gets filtered |
+| **Windows** | very high   | WSL2/Hyper-V VMs bypass `NetFirewallRule` entirely; only `NetFirewallHyperVRule` works — older script versions didn't use it |
+
+### Why does Docker bypass the firewall?
+
+- **Linux:** Docker inserts its iptables rules with `-I` (INSERT) at the top of the FORWARD chain. Even with `FORWARD DROP` as default policy, packets via the Docker bridge (`docker0`) get through because Docker places its own ACCEPT rules first. A script-level `iptables -F` flushes everything, but the moment the daemon (re-)configures a container, it re-applies its rules — and the lockdown is bypassed.
+- **Windows:** WSL2 and Docker Desktop run in Hyper-V VMs with their own virtual network adapters. Packets bypass the Windows network stack entirely and go straight through the Hyper-V switch — `New-NetFirewallRule` never sees them. Only the **Hyper-V Firewall** (`New-NetFirewallHyperVRule`), available since Win 11 22H2, hooks in deep enough.
+- **macOS:** Docker Desktop runs in a Linux VM via Virtualization.framework. Outbound traffic surfaces at `com.docker.backend` on the host and exits through the regular NIC — PF sees the packet and filters it correctly.
+
+### How the scripts solve it
+
+The scripts detect Docker/WSL2 and add platform-specific countermeasures:
+
+| Script | Countermeasure |
+|--------|----------------|
+| `network-lockdown-linux.sh` (`block_docker_traffic`) | `iptables -I DOCKER-USER 1 -j DROP` + DROP in FORWARD for every detected `docker0`/`br-*` bridge (IPv4+IPv6). |
+| `network-lockdown-windows.ps1` (`Block-HyperVTraffic`) | Iterates over all active VMCreatorIds, sets `DefaultOutboundAction = Block`, and creates `New-NetFirewallHyperVRule` allow rules for Anthropic + DNS. Requires Win 11 22H2+. |
+| `network-lockdown-mac.sh` (`detect_docker`) | Detection + warning only — PF already filters container traffic at the packet level. |
+
+For **complete isolation** also recommended:
+```bash
+# Linux
+sudo systemctl stop docker docker.socket containerd
+
+# Windows (PowerShell as Admin)
+wsl --shutdown
+Stop-Service -Name "com.docker.service" -Force
+
+# macOS
+osascript -e 'quit app "Docker Desktop"'
+```
+
+On older Windows versions without Hyper-V Firewall (< Win 11 22H2), the script emits an explicit red warning when WSL/Docker is detected — there, only stopping them helps.
 
 ## Troubleshooting
 

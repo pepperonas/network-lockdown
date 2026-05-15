@@ -95,6 +95,57 @@ resolve_ips() {
     printf '%s\n' "${ips[@]}" | sort -u
 }
 
+# Docker-Erkennung (Daemon laeuft? Bridge-Interfaces vorhanden?)
+detect_docker() {
+    local found=0
+    if command -v docker &>/dev/null && docker info &>/dev/null; then
+        found=1
+    fi
+    if ip link show docker0 &>/dev/null; then
+        found=1
+    fi
+    if iptables -L DOCKER-USER -n &>/dev/null; then
+        found=1
+    fi
+    return $((1 - found))
+}
+
+# Container-/Bridge-Verkehr explizit blockieren.
+# Hintergrund: Ein laufender Docker-Daemon kann iptables-Regeln neu erstellen
+# und damit die FORWARD-Policy umgehen. Diese Regeln werden VOR Docker's
+# eigenen Regeln in DOCKER-USER und FORWARD platziert (Position 1).
+block_docker_traffic() {
+    if ! detect_docker; then
+        return
+    fi
+
+    log "${YELLOW}Docker erkannt — fuege explizite Block-Regeln fuer Container-Traffic ein${NC}"
+    log "${YELLOW}  Empfehlung: 'systemctl stop docker docker.socket containerd' fuer vollstaendige Isolation${NC}"
+
+    # DOCKER-USER existiert nur, wenn Docker-Daemon mindestens einmal Regeln erstellt hat.
+    # Diese Chain wird VOR DOCKER-FORWARD/DOCKER evaluiert.
+    if iptables -L DOCKER-USER -n &>/dev/null; then
+        iptables -I DOCKER-USER 1 -j DROP
+        log "${CYAN}  iptables DOCKER-USER: DROP eingefuegt${NC}"
+    fi
+    if ip6tables -L DOCKER-USER -n &>/dev/null; then
+        ip6tables -I DOCKER-USER 1 -j DROP
+    fi
+
+    # Bridge-Interfaces auflisten (docker0, br-*) und in FORWARD blockieren.
+    # Sicherheitsnetz fuer den Fall, dass Docker nach unserem Flush neue
+    # FORWARD-Regeln per -I einfuegt.
+    local bridges
+    bridges=$(ip -o link show 2>/dev/null | awk -F': ' '/docker0|br-/ {print $2}' | awk '{print $1}')
+    for br in $bridges; do
+        iptables  -I FORWARD 1 -i "$br" -j DROP 2>/dev/null || true
+        iptables  -I FORWARD 1 -o "$br" -j DROP 2>/dev/null || true
+        ip6tables -I FORWARD 1 -i "$br" -j DROP 2>/dev/null || true
+        ip6tables -I FORWARD 1 -o "$br" -j DROP 2>/dev/null || true
+        log "${CYAN}  FORWARD-DROP fuer Bridge: $br${NC}"
+    done
+}
+
 # System-DNS-Server ermitteln
 get_dns_servers() {
     # systemd-resolved
@@ -238,6 +289,11 @@ activate_lockdown() {
     done
 
     # ──────────────────────────────────────────────
+    # Docker-Container-Verkehr blockieren (siehe Funktion oben)
+    # ──────────────────────────────────────────────
+    block_docker_traffic
+
+    # ──────────────────────────────────────────────
 
     # Lockfile erstellen
     echo "$(date)" > "$LOCKFILE"
@@ -304,6 +360,12 @@ deactivate_lockdown() {
 
     log ""
     log "${GREEN}Lockdown DEAKTIVIERT. Netzwerk ist wiederhergestellt.${NC}"
+
+    if detect_docker; then
+        log ""
+        log "${YELLOW}Hinweis:${NC} Docker-Netzwerk wurde beim Lockdown geflusht."
+        log "${YELLOW}        Falls Container kein Netz haben: ${CYAN}systemctl restart docker${NC}"
+    fi
 }
 
 show_status() {
@@ -326,6 +388,12 @@ show_status() {
     ip6tables -L -n --line-numbers 2>/dev/null || echo "(ip6tables nicht verfügbar)"
 
     echo ""
+    if detect_docker; then
+        printf '%b\n' "${YELLOW}Docker erkannt:${NC} Container koennen iptables-Regeln umgehen, wenn der Daemon laeuft."
+        printf '%b\n' "${DIM}  Stoppen: systemctl stop docker docker.socket containerd${NC}"
+        echo ""
+    fi
+
     printf '%b\n' "${CYAN}Claude Code Konnektivitätstest:${NC}"
     if curl -sS --connect-timeout 5 -o /dev/null -w "%{http_code}" https://api.anthropic.com 2>/dev/null | grep -qE "^[245]"; then
         printf '%b\n' "${GREEN}  api.anthropic.com: erreichbar${NC}"
