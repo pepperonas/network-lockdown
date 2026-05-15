@@ -481,6 +481,37 @@ osascript -e 'quit app "Docker Desktop"'
 
 On older Windows versions without Hyper-V Firewall (< Win 11 22H2), the script emits an explicit red warning when WSL/Docker is detected — there, only stopping them helps.
 
+### Additional pitfalls
+
+Beyond Docker, the scripts cover these vectors:
+
+**Other container runtimes (Linux):** Podman, LXC/LXD, containerd directly, Kubernetes (kind/k3s/minikube), libvirt — all use the same iptables manipulation trick as Docker. `block_container_traffic` detects them via known bridge names (`podman*`, `cni-*`, `lxcbr*`, `virbr*`, `flannel*`, `cilium*`, `kube-*`) plus a heuristic that blocks all veth/bridge/tun interfaces except loopback and the default-route uplink. Plus DROP in `CNI-FORWARD`, `KUBE-FORWARD`, `LIBVIRT_FWO`.
+
+**Direct nftables (Linux):** On modern distros (Debian 11+, RHEL 9+, Fedora), nftables is the default backend. Tools like firewalld or eBPF/Cilium can write to nft directly — `iptables-save` doesn't see those rules and the backup misses them. `check_nftables` warns when such tables exist.
+
+**Existing connections — `--strict` flag:** By default, the lockdown only stops **new** connections; already-open TCP sessions (e.g. an active malware connection) keep flowing via `ESTABLISHED`/`flags A/A`. With `--strict` (or `-Strict` on Windows), they are forcibly closed:
+- Linux: `conntrack -F` + `ss --kill state established`
+- macOS: `pfctl -F states`
+- Windows: `iphlpapi.dll!SetTcpEntry` with `MIB_TCP_STATE_DELETE_TCB` (same method as Sysinternals TCPView — closes connections without killing processes)
+
+```bash
+sudo ./network-lockdown-linux.sh on --strict
+sudo ./network-lockdown-mac.sh on --strict
+.\network-lockdown-windows.ps1 on -Strict
+```
+
+`--strict` is automatically ignored on `refresh`, otherwise the running Anthropic session would be killed during IP refresh.
+
+**macOS Application Firewall (`socketfilterfw`):** The GUI firewall in System Settings is not PF — it sits higher in the stack. If it runs in block-all mode, it may block Anthropic traffic — not a bypass, but confusing during troubleshooting. `check_app_firewall` warns.
+
+**WSL Mirrored Networking (Windows 11):** With `networkingMode=mirrored` in `.wslconfig`, WSL2 shares the host network stack instead of using its own vEthernet. Hyper-V Firewall rules behave differently. `Get-WSLNetworkingMode` detects the mode and emits a notice.
+
+**Race condition fixed:** Default policy `DROP` is now set **before** the flush (Linux); macOS uses atomic `pfctl -f` without separate flush. Closes the millisecond window between rule flush and new policy.
+
+### Shared cloud IPs as residual risk
+
+`api.statsig.com` (used by Claude Code for telemetry/feature flags) resolves to a Google Cloud Load Balancer IP — these IPs are shared anycast-style with other GCP customers. The firewall allows any TLS connection to this IP on TCP/443, regardless of SNI. Classic domain fronting is dead on Google (SNI must match Host), but the IP-level trust decision isn't 100% exclusive. For hardening: the Anthropic range `160.79.104.0/21` is dedicated (NetName `AP-2440`), the Statsig endpoint is not.
+
 ## Troubleshooting
 
 ### "Already active" on startup

@@ -71,14 +71,22 @@ Was die Skripte dagegen tun:
 
 | | Maßnahme |
 |---|---|
-| **Linux** (`block_docker_traffic`) | `iptables -I DOCKER-USER 1 -j DROP` (vor Docker's eigenen Regeln) + DROP in FORWARD für alle erkannten `docker0`/`br-*` Bridges (IPv4+IPv6). Empfiehlt zusätzlich `systemctl stop docker` für vollständige Isolation. |
-| **Windows** (`Block-HyperVTraffic`) | Iteriert über alle aktiven VMCreatorIds via `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore`. Setzt `DefaultOutboundAction = Block` und legt `New-NetFirewallHyperVRule` Allow-Regeln für Anthropic + DNS + Loopback an. Erfordert Win 11 22H2+. |
+| **Linux** (`block_container_traffic`) | Erkennt Docker, Podman, LXC/LXD, containerd, libvirt, K8s/CNI (auch Bridges wie `podman*`, `cni*`, `lxcbr*`, `virbr*`, `flannel*`, `cilium*`). DROP in `DOCKER-USER`/`CNI-FORWARD`/`KUBE-FORWARD`/`LIBVIRT_FWO` (vor Daemon-Regeln) + DROP in FORWARD für alle erkannten Bridges/veth/tun-Interfaces (IPv4+IPv6). Heuristik via `list_container_bridges`: alles außer Loopback und Default-Route-Interface. |
+| **Windows** (`Block-HyperVTraffic`) | Iteriert über alle aktiven VMCreatorIds via `Get-NetFirewallHyperVVMSetting -PolicyStore ActiveStore`. Setzt `DefaultOutboundAction = Block` und legt `New-NetFirewallHyperVRule` Allow-Regeln für Anthropic + DNS + Loopback an. Erfordert Win 11 22H2+. WSL-Mirrored-Mode wird via `Get-WSLNetworkingMode` erkannt und gewarnt. |
 | **macOS** (`detect_docker`) | Detection + Warning. PF filtert Container-Traffic bereits auf Paket-Ebene; keine Regelmodifikation nötig. |
 
-**Erkennung** läuft via Helper (`detect_docker` / `Test-DockerOrWSL`). Bei aktivem Docker wird sowohl in `activate_lockdown`/`Enable-Lockdown` als auch in `show_status`/`Show-Status` gewarnt.
+**Weitere Vorkehrungen:**
+- **Race-Fix**: Default-Policy `DROP` wird **vor** dem Flush gesetzt (Linux), macOS nutzt atomares `pfctl -f` ohne separaten Flush. Verhindert das offene Fenster zwischen Regel-Flush und neuer Policy.
+- **nftables-Awareness** (Linux, `check_nftables`): Warnt, wenn native nft-Tabellen existieren, die nicht via iptables verwaltet werden (firewalld, eBPF/Cilium). Diese werden nicht im Backup erfasst.
+- **socketfilterfw** (macOS, `check_app_firewall`): Warnt, wenn macOS Application Firewall im Block-All-Modus läuft — kann Anthropic-Traffic unabhängig vom Lockdown blocken.
+- **`--strict` Flag** (alle Plattformen): killt bestehende Verbindungen statt nur neue zu blocken.
+  - Linux: `conntrack -F` + `ss --kill state established`
+  - macOS: `pfctl -F states`
+  - Windows: `iphlpapi.dll!SetTcpEntry` mit `MIB_TCP_STATE_DELETE_TCB` (TCPView-Methode, killt Verbindungen ohne Prozesse zu killen)
+  - Wird beim `refresh` automatisch deaktiviert, um die laufende Anthropic-Session nicht zu killen.
 
 **Cleanup**:
-- Linux: `iptables-restore` aus Backup räumt unsere DROP-Regeln mit ab. Falls Docker nach Aktivierung des Lockdowns Container hochfuhr, hilft `systemctl restart docker`.
+- Linux: `iptables-restore` aus Backup räumt unsere DROP-Regeln mit ab. Falls Container-Netzwerke nach Lockdown nicht arbeiten, hilft `systemctl restart docker` (bzw. podman/containerd/libvirtd).
 - Windows: `Restore-HyperVTraffic` setzt `DefaultOutboundAction = Allow` zurück, `Remove-LockdownRules` löscht auch HyperV-Rules.
 
 ## Documentation

@@ -15,6 +15,7 @@ PF_ANCHOR_NAME="claude-lockdown"
 BACKUP_CONF="/tmp/pf-backup-$(date +%s).conf"
 LOCKFILE="/tmp/claude-lockdown.active"
 LOG_FILE="/tmp/claude-lockdown.log"
+STRICT_MODE=0
 
 # Farben
 RED='\033[1;31m'
@@ -81,6 +82,24 @@ resolve_ips() {
 
     # Deduplizieren
     printf '%s\n' "${ips[@]}" | sort -u
+}
+
+# macOS Application Firewall (socketfilterfw) checken — sitzt hoeher im
+# Stack als PF und kann Anthropic-Traffic unabhaengig blocken (etwa wenn
+# eine App nicht freigegeben ist). Kein Bypass-Risiko, aber funktional
+# verwirrend beim Troubleshooting.
+check_app_firewall() {
+    local fw="/usr/libexec/ApplicationFirewall/socketfilterfw"
+    [[ -x "$fw" ]] || return
+    local state
+    state=$("$fw" --getglobalstate 2>/dev/null | tail -1)
+    if [[ "$state" == *"State = 2"* || "$state" == *"set to block all"* ]]; then
+        log "${YELLOW}macOS Application Firewall: Block-All-Modus aktiv${NC}"
+        log "${DIM}  Kann Anthropic-Traffic zusaetzlich blocken. Pruefen mit:${NC}"
+        log "${DIM}  sudo $fw --getappblocked /path/to/claude${NC}"
+    elif [[ "$state" == *"enabled"* ]]; then
+        log "${DIM}macOS Application Firewall ist aktiv (Standard-Modus).${NC}"
+    fi
 }
 
 # Docker-Erkennung. Docker Desktop laeuft in einer Linux-VM; ausgehender
@@ -207,10 +226,6 @@ activate_lockdown() {
 
     generate_pf_rules
 
-    # Regeln in pf laden
-    # Bestehende Regeln flushen und neue laden
-    pfctl -F all 2>/dev/null || true
-
     # Anchor in pf.conf registrieren (falls nicht vorhanden)
     if ! grep -q "$PF_ANCHOR_NAME" /etc/pf.conf 2>/dev/null; then
         cp /etc/pf.conf /etc/pf.conf.bak
@@ -218,9 +233,18 @@ activate_lockdown() {
         echo "load anchor \"$PF_ANCHOR_NAME\" from \"$PF_CONF\"" >> /etc/pf.conf
     fi
 
-    # Regeln direkt laden und pf aktivieren
+    # Regelset atomar ersetzen — kein separater Flush noetig.
+    # pfctl -f tauscht das aktive Set in einem ioctl, daher keine Race-Luecke.
     pfctl -f "$PF_CONF" 2>/dev/null
     pfctl -e 2>/dev/null || true
+
+    # Strict-Modus: bestehende Verbindungs-States loeschen,
+    # damit laufende Sessions zu nicht-Anthropic-IPs sofort dropfallen.
+    if [[ "$STRICT_MODE" == "1" ]]; then
+        log "${MAGENTA}Strict-Modus: loesche PF-State-Tabelle...${NC}"
+        pfctl -F states 2>/dev/null && \
+            log "${GREEN}  Bestehende Verbindungen verlieren State — werden vom Default-Block erfasst${NC}"
+    fi
 
     # Lockfile erstellen
     echo "$(date)" > "$LOCKFILE"
@@ -247,6 +271,8 @@ activate_lockdown() {
         log "${DIM}  Bestehende Container-Verbindungen koennen via established-flag weiterlaufen.${NC}"
         log "${DIM}  Fuer harte Trennung: Docker Desktop beenden (osascript -e 'quit app \"Docker Desktop\"').${NC}"
     fi
+
+    check_app_firewall
 }
 
 deactivate_lockdown() {
@@ -331,9 +357,13 @@ refresh_ips() {
         exit 1
     fi
 
+    # Strict-Modus beim Refresh deaktivieren — wuerde die laufende
+    # Anthropic-Verbindung killen.
+    STRICT_MODE=0
+
     log "${CYAN}Aktualisiere Anthropic-IPs...${NC}"
     generate_pf_rules
-    pfctl -F all 2>/dev/null || true
+    # Atomares Reload — Regelset wird in einem ioctl ersetzt
     pfctl -f "$PF_CONF" 2>/dev/null
     pfctl -e 2>/dev/null || true
     log "${GREEN}IPs aktualisiert und Regeln neu geladen.${NC}"
@@ -355,6 +385,10 @@ show_help() {
     echo "  rules    Aktuelle Regeln anzeigen (ohne Aktivierung)"
     echo "  guide    Incident-Response-Guide (PDF) herunterladen"
     echo "  help     Diese Hilfe anzeigen"
+    echo ""
+    echo "Optionen:"
+    echo "  --strict, -s  PF-State-Tabelle leeren beim Aktivieren"
+    echo "                (killt bestehende Verbindungen zu nicht-Anthropic-IPs)"
     echo ""
     printf '%b\n' "${YELLOW}Hinweis: Erfordert root-Rechte (sudo).${NC}"
     echo ""
@@ -396,6 +430,12 @@ download_guide() {
 }
 
 # === Main ===
+for arg in "$@"; do
+    case "$arg" in
+        --strict|-s) STRICT_MODE=1 ;;
+    esac
+done
+
 show_banner
 case "${1:-help}" in
     on|activate|enable)

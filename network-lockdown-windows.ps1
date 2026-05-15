@@ -8,7 +8,10 @@
 param(
     [Parameter(Position = 0)]
     [ValidateSet("on", "off", "status", "refresh", "rules", "guide", "help")]
-    [string]$Action = "help"
+    [string]$Action = "help",
+
+    [Alias("s")]
+    [switch]$Strict
 )
 
 $ErrorActionPreference = "Stop"
@@ -107,6 +110,22 @@ function Test-HyperVFirewallSupport {
     return [bool](Get-Command Get-NetFirewallHyperVVMSetting -ErrorAction SilentlyContinue)
 }
 
+# WSL Mirrored Networking Mode erkennen (.wslconfig).
+# Im Mirrored-Mode teilt sich WSL2 den Host-Netzwerk-Stack statt eigenes
+# vEthernet zu nutzen — Hyper-V-Firewall greift anders.
+function Get-WSLNetworkingMode {
+    $wslConfig = Join-Path $env:USERPROFILE ".wslconfig"
+    if (-not (Test-Path $wslConfig)) { return "default (NAT)" }
+    try {
+        $content = Get-Content $wslConfig -Raw -ErrorAction Stop
+        if ($content -match "(?im)^\s*networkingMode\s*=\s*(\S+)") {
+            return $Matches[1].Trim()
+        }
+    }
+    catch { }
+    return "default (NAT)"
+}
+
 # Docker Desktop / WSL2 erkennen
 function Test-DockerOrWSL {
     $found = $false
@@ -152,6 +171,11 @@ function Block-HyperVTraffic {
             Write-Log "  Empfehlung: 'wsl --shutdown' und Docker Desktop beenden." "Red"
         }
         return
+    }
+
+    $wslMode = Get-WSLNetworkingMode
+    if ($wslMode -eq "mirrored") {
+        Write-Log "WSL Networking Mode: mirrored — Hyper-V-Regeln verhalten sich anders als NAT." "Yellow"
     }
 
     $vmCreatorIds = Get-ActiveVMCreatorIds
@@ -239,6 +263,87 @@ function Block-HyperVTraffic {
     }
 
     Write-Log "Hyper-V-Firewall: Container-/VM-Traffic auf Anthropic+DNS beschraenkt." "Green"
+}
+
+# Strict-Modus: Bestehende TCP-Verbindungen zu nicht-Anthropic-IPs zwangsweise
+# schliessen via iphlpapi.dll!SetTcpEntry (gleiche API wie TCPView).
+# Schliesst die TCP-Connection-Table-Eintraege, ohne Prozesse zu killen.
+function Close-NonAllowedConnections {
+    param(
+        [string[]]$AllowedIPv4
+    )
+
+    # IPs ohne CIDR-Suffix fuer Vergleich
+    $allowedHosts = @($AllowedIPv4 | ForEach-Object { ($_ -split "/")[0] })
+
+    if (-not ([System.Management.Automation.PSTypeName]'NetLockdown.TcpKiller').Type) {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+namespace NetLockdown {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MIB_TCPROW {
+        public uint State;
+        public uint LocalAddr;
+        public uint LocalPort;
+        public uint RemoteAddr;
+        public uint RemotePort;
+    }
+    public static class TcpKiller {
+        [DllImport("iphlpapi.dll", SetLastError=true)]
+        public static extern int SetTcpEntry(ref MIB_TCPROW pTcprow);
+        public const uint MIB_TCP_STATE_DELETE_TCB = 12;
+    }
+}
+"@ -ErrorAction SilentlyContinue
+    }
+
+    $closed = 0
+    $kept = 0
+    try {
+        $connections = Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue
+        foreach ($conn in $connections) {
+            $remote = $conn.RemoteAddress
+
+            # Loopback skip
+            if ($remote -eq "127.0.0.1" -or $remote -eq "::1" -or $remote.StartsWith("169.254.")) {
+                continue
+            }
+
+            # IPv4 only fuer SetTcpEntry — IPv6-Killing braucht andere API
+            if ($remote -notmatch "^\d+\.\d+\.\d+\.\d+$") {
+                continue
+            }
+
+            if ($allowedHosts -contains $remote) {
+                $kept++
+                continue
+            }
+
+            # IP/Port in Network-Byte-Order packen
+            try {
+                $localAddr = [System.Net.IPAddress]::Parse($conn.LocalAddress).GetAddressBytes()
+                $remoteAddr = [System.Net.IPAddress]::Parse($remote).GetAddressBytes()
+                $row = New-Object NetLockdown.MIB_TCPROW
+                $row.State = [NetLockdown.TcpKiller]::MIB_TCP_STATE_DELETE_TCB
+                $row.LocalAddr = [BitConverter]::ToUInt32($localAddr, 0)
+                $row.LocalPort = [System.Net.IPAddress]::HostToNetworkOrder([int16]$conn.LocalPort) -band 0xFFFF
+                $row.RemoteAddr = [BitConverter]::ToUInt32($remoteAddr, 0)
+                $row.RemotePort = [System.Net.IPAddress]::HostToNetworkOrder([int16]$conn.RemotePort) -band 0xFFFF
+                $result = [NetLockdown.TcpKiller]::SetTcpEntry([ref]$row)
+                if ($result -eq 0) { $closed++ }
+            }
+            catch {
+                # einzelne Verbindung konnte nicht geschlossen werden — weiter
+            }
+        }
+    }
+    catch {
+        Write-Log "  Strict-Modus: Get-NetTCPConnection fehlgeschlagen ($($_.Exception.Message))" "Yellow"
+        return
+    }
+
+    Write-Log "  TCP-Verbindungen geschlossen: $closed (Anthropic erhalten: $kept)" "Green"
 }
 
 # Hyper-V-Firewall: Default Outbound zurueck auf Allow, Allow-Rules entfernt durch Remove-LockdownRules.
@@ -444,6 +549,14 @@ function Enable-Lockdown {
         -DnsIPv4 $dnsIPv4 -DnsIPv6 $dnsIPv6
 
     # ──────────────────────────────────────────────
+    # Schritt 7: Strict-Modus — bestehende Verbindungen schliessen
+    # ──────────────────────────────────────────────
+    if ($Strict) {
+        Write-Log "Strict-Modus: schliesse bestehende TCP-Verbindungen..." "Magenta"
+        Close-NonAllowedConnections -AllowedIPv4 $ips.IPv4
+    }
+
+    # ──────────────────────────────────────────────
 
     # Lockfile erstellen
     @(
@@ -566,6 +679,13 @@ function Show-Status {
             Write-Host "Docker/WSL2 erkannt: KEINE Hyper-V-Firewall verfuegbar!" -ForegroundColor Red
             Write-Host "  Container/WSL2 umgehen die Lockdown-Regeln. Empfohlen: 'wsl --shutdown' + Docker beenden." -ForegroundColor Red
         }
+
+        $wslMode = Get-WSLNetworkingMode
+        Write-Host "  WSL Networking Mode: $wslMode" -ForegroundColor DarkGray
+        if ($wslMode -eq "mirrored") {
+            Write-Host "  Hinweis: Mirrored Mode teilt sich den Host-Stack — Host-Firewall greift teilweise direkt." -ForegroundColor DarkGray
+            Write-Host "          Hyper-V-Regeln verhalten sich anders als im NAT-Mode." -ForegroundColor DarkGray
+        }
     }
 
     Write-Host ""
@@ -606,6 +726,10 @@ function Update-IPs {
     }
 
     Write-Log "Aktualisiere Anthropic-IPs..." "Cyan"
+
+    # Strict-Modus beim Refresh deaktivieren — wuerde die laufende
+    # Anthropic-Verbindung killen.
+    $script:Strict = $false
 
     # Backup-Pfad merken
     $lines = Get-Content $LOCKFILE
@@ -759,6 +883,10 @@ function Show-Help {
     Write-Host "  rules    Aktuelle Firewall-Regeln detailliert anzeigen"
     Write-Host "  guide    Incident-Response-Guide (PDF) herunterladen"
     Write-Host "  help     Diese Hilfe anzeigen"
+    Write-Host ""
+    Write-Host "Optionen:"
+    Write-Host "  -Strict, -s   Bestehende TCP-Verbindungen schliessen via SetTcpEntry"
+    Write-Host "                (killt laufende Sessions zu nicht-Anthropic-IPs)"
     Write-Host ""
     Write-Host "Hinweis: Erfordert Administrator-Rechte (Als Admin ausfuehren)." -ForegroundColor Yellow
     Write-Host ""
