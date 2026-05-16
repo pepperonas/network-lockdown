@@ -57,7 +57,7 @@ Emergency network lockdown for macOS, Linux and Windows. During a security incid
 
 When lockdown is active, the following is allowed:
 
-- Claude Code CLI connections to the Anthropic API (api.anthropic.com, Port 443 TLS)
+- Claude Code CLI connections to the Anthropic API (`api.anthropic.com` and `api.statsig.com`, Port 443 TLS)
 - Localhost/loopback traffic
 - DNS queries (necessary for IP resolution)
 - Return packets from established connections
@@ -113,7 +113,7 @@ sudo ./network-lockdown.sh off
 ### Why This Works
 
 - **Complete network isolation** at kernel level — no process can bypass it
-- **Claude Code CLI only needs HTTPS to api.anthropic.com** — a single, encrypted connection
+- **Claude Code CLI only needs HTTPS to Anthropic** — two narrowly scoped, encrypted endpoints (API + telemetry)
 - **Claude Opus 4.6 analyzes any files**, logs, binaries and configurations directly in the terminal
 - **No second machine needed** — the AI runs remotely at Anthropic, you only need the terminal
 - **Attackers lose all connections** — C2 servers, exfiltration channels, reverse shells are immediately cut off
@@ -324,11 +324,12 @@ sudo ./network-lockdown.sh off
 - **Established connections:** Return packets from already established connections
 - **ICMPv6** (Linux only): Neighbor Discovery Protocol
 
-### Only to Anthropic API
+### Only to Anthropic / Statsig
 
 - **Protocol:** HTTPS (TCP Port 443)
-- **Destination:** All IP addresses that `api.anthropic.com` resolves to
+- **Targets:** IPs of `api.anthropic.com` (dedicated AS `AP-2440`, `160.79.104.0/21`) and `api.statsig.com` (telemetry/feature flags, Google Cloud LB)
 - **Direction:** Outbound only
+- **Note:** The Statsig endpoint sits on a shared Google Cloud IP — see "Shared cloud IPs as residual risk".
 
 ### Everything Else
 
@@ -338,18 +339,20 @@ sudo ./network-lockdown.sh off
 
 ### IP Resolution at Activation Time
 
-The Anthropic API IPs are resolved via DNS when running `on` or `refresh`:
+The allowed IPs are resolved via DNS when running `on` or `refresh` — for both `api.anthropic.com` and `api.statsig.com`:
 
 ```bash
 # macOS/Linux
 dig +short api.anthropic.com A
 dig +short api.anthropic.com AAAA
+dig +short api.statsig.com A
 
 # Windows
 Resolve-DnsName api.anthropic.com
+Resolve-DnsName api.statsig.com
 ```
 
-**Important:** If Anthropic changes its CDN IPs, `refresh` must be executed.
+**Important:** If Anthropic changes its IPs, `refresh` must be executed.
 
 ### DNS as Attack Surface
 
@@ -357,7 +360,7 @@ DNS traffic is allowed because it is necessary for IP resolution. This is a mini
 
 - DNS spoofing could theoretically deliver false IPs
 - **Mitigation:** Claude Code CLI uses TLS certificate verification
-- Only `api.anthropic.com` is resolved, not arbitrary domains
+- Only the two domains above are resolved — no arbitrary hosts
 
 ### Lockfile Protection
 
