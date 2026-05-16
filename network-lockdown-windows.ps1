@@ -319,16 +319,21 @@ namespace NetLockdown {
                 continue
             }
 
-            # IP/Port in Network-Byte-Order packen
+            # IP/Port in Network-Byte-Order packen.
+            # WICHTIG: [int16]-Cast wuerde bei Ports > 32767 (ephemeral range
+            # ist 49152-65535 auf Windows) eine OverflowException werfen.
+            # Stattdessen manueller Byte-Swap fuer uint16 -> uint32 NBO.
             try {
                 $localAddr = [System.Net.IPAddress]::Parse($conn.LocalAddress).GetAddressBytes()
                 $remoteAddr = [System.Net.IPAddress]::Parse($remote).GetAddressBytes()
+                $lp = [uint32]$conn.LocalPort
+                $rp = [uint32]$conn.RemotePort
                 $row = New-Object NetLockdown.MIB_TCPROW
                 $row.State = [NetLockdown.TcpKiller]::MIB_TCP_STATE_DELETE_TCB
                 $row.LocalAddr = [BitConverter]::ToUInt32($localAddr, 0)
-                $row.LocalPort = [System.Net.IPAddress]::HostToNetworkOrder([int16]$conn.LocalPort) -band 0xFFFF
+                $row.LocalPort = (($lp -band 0xFF) -shl 8) -bor (($lp -shr 8) -band 0xFF)
                 $row.RemoteAddr = [BitConverter]::ToUInt32($remoteAddr, 0)
-                $row.RemotePort = [System.Net.IPAddress]::HostToNetworkOrder([int16]$conn.RemotePort) -band 0xFFFF
+                $row.RemotePort = (($rp -band 0xFF) -shl 8) -bor (($rp -shr 8) -band 0xFF)
                 $result = [NetLockdown.TcpKiller]::SetTcpEntry([ref]$row)
                 if ($result -eq 0) { $closed++ }
             }

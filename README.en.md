@@ -500,6 +500,13 @@ sudo ./network-lockdown-mac.sh on --strict
 .\network-lockdown-windows.ps1 on -Strict
 ```
 
+`--strict` can also be applied **to an already-active lockdown** — the script detects the state and performs only the connection flush without rebuilding rules:
+
+```bash
+# Lockdown has been running for 5 minutes, now kill existing connections:
+sudo ./network-lockdown-linux.sh on --strict
+```
+
 `--strict` is automatically ignored on `refresh`, otherwise the running Anthropic session would be killed during IP refresh.
 
 **macOS Application Firewall (`socketfilterfw`):** The GUI firewall in System Settings is not PF — it sits higher in the stack. If it runs in block-all mode, it may block Anthropic traffic — not a bypass, but confusing during troubleshooting. `check_app_firewall` warns.
