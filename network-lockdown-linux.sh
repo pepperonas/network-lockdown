@@ -73,7 +73,6 @@ show_banner() {
 resolve_ips() {
     local domains=(
         "api.anthropic.com"
-        "statsig.anthropic.com"
         "api.statsig.com"
     )
     local ips=()
@@ -197,6 +196,34 @@ block_container_traffic() {
 # Backwards-compatible alias
 block_docker_traffic() { block_container_traffic; }
 
+# Strict-Modus: bestehende Verbindungen zwangsweise schliessen.
+# Wirkt unabhaengig davon, ob der Lockdown gerade neu gebaut wurde oder
+# schon laeuft (kann auch nachtraeglich via `on --strict` angewendet werden).
+apply_strict_mode() {
+    log "${MAGENTA}Strict-Modus: schliesse bestehende Verbindungen...${NC}"
+
+    local did_something=0
+
+    if command -v conntrack &>/dev/null; then
+        conntrack -F 2>/dev/null && \
+            log "${GREEN}  conntrack-Tabelle geleert — UDP/ICMP-Sessions verlieren State${NC}"
+        did_something=1
+    fi
+
+    if command -v ss &>/dev/null; then
+        # Killt TCP-Sockets in ESTABLISHED-State. Anthropic-Verbindungen
+        # bauen sich danach via Allow-Regel neu auf.
+        ss --kill state established 2>/dev/null || true
+        log "${GREEN}  Bestehende TCP-Sockets via ss --kill geschlossen${NC}"
+        did_something=1
+    fi
+
+    if [[ "$did_something" == "0" ]]; then
+        log "${YELLOW}  Weder conntrack noch ss verfuegbar — Strict-Modus wirkt nicht.${NC}"
+        log "${DIM}  Installiere: apt install conntrack iproute2  (oder rpm-aequivalent)${NC}"
+    fi
+}
+
 # nftables-Detection: auf modernen Distros (Debian 11+, RHEL 9+, Fedora) ist
 # nftables das Default-Backend. `iptables` ist meist `iptables-nft` (Shim).
 # Tools wie firewalld koennen direkt nft-Regeln schreiben, die unser
@@ -239,7 +266,15 @@ activate_lockdown() {
     check_dependencies
 
     if [[ -f "$LOCKFILE" ]]; then
+        # Wenn nur --strict angefragt wird, wende es auf den laufenden
+        # Lockdown an statt mit Fehler abzubrechen.
+        if [[ "$STRICT_MODE" == "1" ]]; then
+            log "${CYAN}Lockdown ist aktiv — wende Strict-Modus auf laufende Session an${NC}"
+            apply_strict_mode
+            exit 0
+        fi
         log "${YELLOW}Lockdown ist bereits aktiv. Zum Neustart erst deaktivieren: $0 off${NC}"
+        log "${DIM}  Strict-Modus nachtraeglich anwenden: $0 on --strict${NC}"
         exit 1
     fi
 
@@ -376,27 +411,7 @@ activate_lockdown() {
     # Strict-Modus: bestehende Verbindungen killen
     # ──────────────────────────────────────────────
     if [[ "$STRICT_MODE" == "1" ]]; then
-        log "${MAGENTA}Strict-Modus: leere conntrack-Tabelle...${NC}"
-        if command -v conntrack &>/dev/null; then
-            conntrack -F 2>/dev/null && \
-                log "${GREEN}  conntrack-Eintraege geloescht — bestehende Sessions verlieren ESTABLISHED${NC}"
-        else
-            # Fallback ueber sysfs (loescht alle conntrack states)
-            if [[ -w /proc/sys/net/netfilter/nf_conntrack_max ]]; then
-                local cmax
-                cmax=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null)
-                echo 0 > /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null
-                echo "$cmax" > /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null
-                log "${GREEN}  conntrack-Tabelle ueber sysfs zurueckgesetzt${NC}"
-            else
-                log "${YELLOW}  conntrack-Tool nicht installiert. Installiere: apt install conntrack${NC}"
-            fi
-        fi
-        # Aktive TCP-Sockets zwangsweise schliessen (best effort)
-        if command -v ss &>/dev/null; then
-            ss --kill state established 2>/dev/null || true
-            log "${GREEN}  Bestehende TCP-Sockets gekillt${NC}"
-        fi
+        apply_strict_mode
     fi
 
     # Lockfile erstellen

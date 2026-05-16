@@ -42,7 +42,6 @@ function Test-Administrator {
 function Resolve-AnthropicIPs {
     $domains = @(
         "api.anthropic.com"
-        "statsig.anthropic.com"
         "api.statsig.com"
     )
 
@@ -372,7 +371,17 @@ function Enable-Lockdown {
     }
 
     if (Test-Path $LOCKFILE) {
+        if ($Strict) {
+            Write-Log "Lockdown ist aktiv — wende Strict-Modus auf laufende Session an" "Cyan"
+            # IPs aus Lockfile holen, statt neu aufzuloesen
+            $lines = Get-Content $LOCKFILE
+            $allowedV4 = @()
+            if ($lines.Count -ge 3 -and $lines[2]) { $allowedV4 = $lines[2] -split "," }
+            Close-NonAllowedConnections -AllowedIPv4 $allowedV4
+            return
+        }
         Write-Log "Lockdown ist bereits aktiv. Zum Neustart erst deaktivieren: .\$($MyInvocation.ScriptName) off" "Yellow"
+        Write-Log "  Strict-Modus nachtraeglich anwenden: .\$($MyInvocation.ScriptName) on -Strict" "DarkGray"
         return
     }
 

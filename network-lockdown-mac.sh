@@ -60,7 +60,6 @@ show_banner() {
 resolve_ips() {
     local domains=(
         "api.anthropic.com"
-        "statsig.anthropic.com"
         "api.statsig.com"
     )
     local ips=()
@@ -207,11 +206,23 @@ FOOTER
     log "${GREEN}PF-Regeln geschrieben: $PF_CONF${NC}"
 }
 
+apply_strict_mode() {
+    log "${MAGENTA}Strict-Modus: loesche PF-State-Tabelle...${NC}"
+    pfctl -F states 2>/dev/null && \
+        log "${GREEN}  Bestehende Verbindungen verlieren State — werden vom Default-Block erfasst${NC}"
+}
+
 activate_lockdown() {
     check_root
 
     if [[ -f "$LOCKFILE" ]]; then
+        if [[ "$STRICT_MODE" == "1" ]]; then
+            log "${CYAN}Lockdown ist aktiv — wende Strict-Modus auf laufende Session an${NC}"
+            apply_strict_mode
+            exit 0
+        fi
         log "${YELLOW}Lockdown ist bereits aktiv. Zum Neustart erst deaktivieren: $0 off${NC}"
+        log "${DIM}  Strict-Modus nachtraeglich anwenden: $0 on --strict${NC}"
         exit 1
     fi
 
@@ -241,9 +252,7 @@ activate_lockdown() {
     # Strict-Modus: bestehende Verbindungs-States loeschen,
     # damit laufende Sessions zu nicht-Anthropic-IPs sofort dropfallen.
     if [[ "$STRICT_MODE" == "1" ]]; then
-        log "${MAGENTA}Strict-Modus: loesche PF-State-Tabelle...${NC}"
-        pfctl -F states 2>/dev/null && \
-            log "${GREEN}  Bestehende Verbindungen verlieren State — werden vom Default-Block erfasst${NC}"
+        apply_strict_mode
     fi
 
     # Lockfile erstellen

@@ -36,7 +36,7 @@ All three scripts share the same structure and command interface (`on`, `off`, `
 | DNS tool | `dig` | `dig` | `Resolve-DnsName` |
 
 **Shared function structure** (same in all scripts):
-- `resolve_ips` / `Resolve-AnthropicIPs` — resolves `api.anthropic.com`, `statsig.anthropic.com`, `api.statsig.com` to IPv4/IPv6
+- `resolve_ips` / `Resolve-AnthropicIPs` — resolves `api.anthropic.com` and `api.statsig.com` to IPv4/IPv6 (Note: `statsig.anthropic.com` was previously in the list but now NXDOMAIN; removed.)
 - `activate_lockdown` / `Enable-Lockdown` — backs up firewall, creates block+allow rules, writes lockfile
 - `deactivate_lockdown` / `Disable-Lockdown` — removes rules, restores backup, deletes lockfile
 - `show_status` / `Show-Status` — displays lockdown state and connectivity test
