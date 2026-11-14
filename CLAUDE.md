@@ -49,6 +49,11 @@ All three scripts share the same structure and command interface (`on`, `off`, `
 - Loopback (127.0.0.0/8)
 - Established/related connections (conntrack on Linux, `flags A/A` on macOS)
 
+## Linux-Specific Gotchas
+
+- **`set -eo pipefail` + `var=$(… | grep …)`**: If `grep` finds nothing, the whole substitution fails and the script exits silently. Since `activate_lockdown` sets the DROP policy *before* writing the lockfile, such an abort leaves the machine locked down **without** a lockfile (`off` then cannot restore the backup). Every grep pipeline whose empty result is legitimate needs `|| true` (e.g. `check_nftables` on a host with only iptables-nft tables — this broke `on` on ubuntu-latest from 2026-05-15 until the fix).
+- **Local reproduction of the CI job** without touching the host firewall: `docker run --rm --cap-add NET_ADMIN --cap-add NET_RAW -v "$PWD":/src:ro ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq iptables dnsutils curl iproute2 >/dev/null && cd /src && ./network-lockdown-linux.sh on && ./network-lockdown-linux.sh refresh && ./network-lockdown-linux.sh off'`
+
 ## Windows-Specific Gotchas
 
 These are hard-won lessons from CI debugging:

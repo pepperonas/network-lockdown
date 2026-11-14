@@ -137,7 +137,7 @@ list_container_bridges() {
         [[ "$iface" == "$uplink" ]] && continue
         # Nur Bridges, veth-Endpunkte, TUN/TAP, WireGuard, dummy
         local type
-        type=$(ip -d -o link show "$iface" 2>/dev/null | grep -oE 'link/[a-z]+|veth|bridge|tun|wireguard|vxlan|geneve|ipip' | head -1)
+        type=$(ip -d -o link show "$iface" 2>/dev/null | grep -oE 'link/[a-z]+|veth|bridge|tun|wireguard|vxlan|geneve|ipip' | head -1 || true)
         case "$iface" in
             docker*|br-*|podman*|cni-*|cni*|lxcbr*|lxdbr*|virbr*|flannel*|cilium*|kube-*|vnet*|tap*)
                 echo "$iface"
@@ -233,7 +233,7 @@ check_nftables() {
 
     # Existieren native nft-tabellen ausser unseren iptables-nft Tabellen?
     local nft_tables
-    nft_tables=$(nft list tables 2>/dev/null | grep -vE '^table (ip|ip6) (filter|nat|mangle|raw|security)$' | head -20)
+    nft_tables=$(nft list tables 2>/dev/null | grep -vE '^table (ip|ip6) (filter|nat|mangle|raw|security)$' | head -20 || true)
     if [[ -n "$nft_tables" ]]; then
         log "${YELLOW}nftables-Tabellen erkannt, die nicht ueber iptables verwaltet werden:${NC}"
         echo "$nft_tables" | while read -r line; do
@@ -254,11 +254,11 @@ check_nftables() {
 get_dns_servers() {
     # systemd-resolved
     if command -v resolvectl &>/dev/null; then
-        resolvectl status 2>/dev/null | grep 'DNS Servers' | awk '{for(i=3;i<=NF;i++) print $i}' | sort -u
+        resolvectl status 2>/dev/null | grep 'DNS Servers' | awk '{for(i=3;i<=NF;i++) print $i}' | sort -u || true
         return
     fi
     # Fallback: /etc/resolv.conf
-    grep -E '^\s*nameserver' /etc/resolv.conf 2>/dev/null | awk '{print $2}' | sort -u
+    grep -E '^\s*nameserver' /etc/resolv.conf 2>/dev/null | awk '{print $2}' | sort -u || true
 }
 
 activate_lockdown() {
